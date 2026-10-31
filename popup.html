@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeRadar - Coding Contests & CP Calendar</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <img src="logo/icon32.png" alt="CodeRadar" class="brand-icon" />
+        <div class="brand-text">
+          <span class="brand-name">CodeRadar</span>
+          <span class="live-dot" title="Live Sync Active"></span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="toggleFilterBtn" class="icon-btn" title="Platform Filters" aria-label="Toggle Filters">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          <span id="activeFilterBadge" class="filter-count-badge">8</span>
+        </button>
+        <button id="refreshBtn" class="icon-btn" title="Refresh Contests" aria-label="Refresh">
+          <svg id="refreshIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+        </button>
+        <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-section">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search contests, rounds, divisions..." autocomplete="off" />
+        <button id="clearSearchBtn" class="clear-search-btn" title="Clear search" style="display: none;">&times;</button>
+      </div>
+    </div>
+
+    <!-- Platform Filter Drawer (Expandable) -->
+    <div id="filterDrawer" class="filter-drawer hidden">
+      <div class="drawer-header">
+        <span class="drawer-title">Platforms</span>
+        <div class="drawer-shortcuts">
+          <button id="selectAllPlatformsBtn" class="text-btn">All</button>
+          <span class="divider">|</span>
+          <button id="clearPlatformsBtn" class="text-btn">Clear</button>
+        </div>
+      </div>
+      <div class="platform-chips" id="platformChipsContainer">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="all">
+        All <span class="tab-count" id="countAll">0</span>
+      </button>
+      <button class="tab-btn" data-tab="live">
+        <span class="pulse-indicator"></span> Live <span class="tab-count" id="countLive">0</span>
+      </button>
+      <button class="tab-btn" data-tab="today">
+        Today <span class="tab-count" id="countToday">0</span>
+      </button>
+      <button class="tab-btn" data-tab="upcoming">
+        Upcoming <span class="tab-count" id="countUpcoming">0</span>
+      </button>
+      <button class="tab-btn" data-tab="saved">
+        Starred <span class="tab-count" id="countSaved">0</span>
+      </button>
+    </nav>
+
+    <!-- Contest List Container -->
+    <main class="contest-list-container" id="contestList">
+      <!-- Skeleton Loading / Cards injected dynamically -->
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </main>
+
+    <!-- Footer Bar -->
+    <footer class="app-footer">
+      <span id="syncStatus" class="sync-status">Checking schedule...</span>
+      <div class="footer-links">
+        <a href="https://clist.by" target="_blank" rel="noopener" class="footer-link">Data: CLIST</a>
+        <span class="divider">•</span>
+        <span class="version-tag">v1.0.0</span>
+      </div>
+    </footer>
+
+    <!-- Settings Modal Overlay -->
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Settings</h2>
+          <button id="closeSettingsBtn" class="modal-close-btn">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Reminder Offset -->
+          <div class="setting-item">
+            <label class="setting-label" for="reminderOffsetSelect">
+              <span class="label-title">Contest Reminder</span>
+              <span class="label-desc">Send desktop alert before contest begins</span>
+            </label>
+            <select id="reminderOffsetSelect" class="custom-select">
+              <option value="5">5 minutes before</option>
+              <option value="15" selected>15 minutes before</option>
+              <option value="30">30 minutes before</option>
+              <option value="60">1 hour before</option>
+            </select>
+          </div>
+
+          <!-- Duration Filter -->
+          <div class="setting-item switch-item">
+            <div class="switch-info">
+              <span class="label-title">Hide Long Challenges (> 24h)</span>
+              <span class="label-desc">Hide multi-week hackathons & long marathons</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="hideLongContestsSwitch" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Custom Clist API Credentials -->
+          <div class="setting-item">
+            <label class="setting-label">
+              <span class="label-title">Custom CLIST API (Optional)</span>
+              <span class="label-desc">Provide your free personal credentials for higher rate limits</span>
+            </label>
+            <input type="text" id="clistUsernameInput" class="custom-input" placeholder="Clist Username" />
+            <input type="password" id="clistApiKeyInput" class="custom-input" placeholder="Clist API Key" />
+            <a href="https://clist.by/api/v4/doc/" target="_blank" class="small-link">Get a free key from clist.by &rarr;</a>
+          </div>
+
+          <div class="setting-item about-section">
+            <div class="about-card">
+              <div class="about-title">About CodeRadar</div>
+              <p class="about-text">Modern open-source competitive programming radar crafted for competitive coders, students, and engineers.</p>
+              <div class="about-badges">
+                <span class="badge">Manifest V3</span>
+                <span class="badge">Zero Tracking</span>
+                <span class="badge">100% Free</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="saveSettingsBtn" class="primary-btn">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

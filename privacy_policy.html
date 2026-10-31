@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - CodeRadar</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      color: #334155;
+      background: #f8fafc;
+      padding: 40px 20px;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #ffffff;
+      padding: 36px 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
+    h1 { color: #0f172a; margin-top: 0; font-size: 26px; }
+    h2 { color: #1e293b; margin-top: 28px; font-size: 18px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+    p, li { font-size: 15px; }
+    ul { padding-left: 20px; }
+    .badge {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0284c7;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .date { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">Official Policy</div>
+    <h1>Privacy Policy for CodeRadar</h1>
+    <div class="date">Last updated: November 1, 2026</div>
+
+    <p><strong>CodeRadar</strong> is an open-source browser extension developed for competitive coders, students, and software engineers. We value your trust and are strictly committed to user privacy.</p>
+
+    <h2>1. Information Collection and Usage</h2>
+    <p><strong>CodeRadar does NOT collect, transmit, sell, or monetize any personal data.</strong></p>
+    <ul>
+      <li><strong>No Personal Identifiable Information (PII):</strong> We do not track or collect names, email addresses, browsing history, keystrokes, or location data.</li>
+      <li><strong>No User Accounts:</strong> The extension operates anonymously and requires no registration or login.</li>
+      <li><strong>No Analytics / Trackers:</strong> There are no third-party tracking scripts, telemetry pixels, or advertisement SDKs bundled.</li>
+    </ul>
+
+    <h2>2. Local Storage and Data Persistence</h2>
+    <p>CodeRadar utilizes Chrome's local storage API (<code>chrome.storage.local</code>) exclusively on your machine to save:</p>
+    <ul>
+      <li>User-selected platform preferences (e.g. Codeforces, LeetCode, AtCoder).</li>
+      <li>Contest reminder intervals (e.g. 15 minutes before contest).</li>
+      <li>Bookmarked contests ("Starred" list).</li>
+      <li>Cached public contest schedules to provide instant 0ms offline display.</li>
+    </ul>
+    <p>This data stays on your machine and is never transmitted to external servers.</p>
+
+    <h2>3. Network Communications</h2>
+    <p>CodeRadar makes direct HTTPS requests only to public contest schedule APIs:</p>
+    <ul>
+      <li><code>https://clist.by</code> - Public contest schedule aggregator.</li>
+      <li><code>https://codeforces.com</code> - Official Codeforces public contest API.</li>
+    </ul>
+
+    <h2>4. Permissions Justification</h2>
+    <ul>
+      <li><code>storage</code>: Keeps your settings and bookmarks on your device.</li>
+      <li><code>alarms</code>: Schedules background timers to trigger contest reminders on time.</li>
+      <li><code>notifications</code>: Generates desktop alerts when an opted-in contest is starting soon.</li>
+      <li>Host permissions: Allows fetching public contest schedules.</li>
+    </ul>
+  </div>
+</body>
+</html>

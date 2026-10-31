@@ -1,19 +1,35 @@
 {
-  "name": "CP Calendar",
-  "description": "An extension that keeps users updated about Coding or Competitive Programming contests.",
-  "version": "0.0.9",
   "manifest_version": 3,
-  "action": {
-    "default_popup": "index.html",
-    "default_icon": {
-      "128": "logo/128.png",
-      "48": "logo/48.png",
-      "16": "logo/16.png"
-    }
-  },
+  "name": "CodeRadar - Coding Contests & CP Calendar",
+  "short_name": "CodeRadar",
+  "version": "1.0.0",
+  "description": "Never miss a coding contest! Live schedule & alerts for LeetCode, Codeforces, CodeChef, AtCoder. 1-click Google Calendar sync.",
   "icons": {
-    "128": "logo/128.png",
-    "48": "logo/48.png",
-    "16": "logo/16.png"
-  }
+    "16": "logo/icon16.png",
+    "32": "logo/icon32.png",
+    "48": "logo/icon48.png",
+    "128": "logo/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "logo/icon16.png",
+      "32": "logo/icon32.png",
+      "48": "logo/icon48.png",
+      "128": "logo/icon128.png"
+    },
+    "default_title": "CodeRadar - Coding Contests Tracker"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://clist.by/*",
+    "https://codeforces.com/*"
+  ]
 }

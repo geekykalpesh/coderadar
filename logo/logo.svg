@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F19" />
+      <stop offset="50%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E1B4B" />
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#C084FC" />
+    </linearGradient>
+    <linearGradient id="sweepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0" />
+    </linearGradient>
+    <radialGradient id="blipGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4ADE80" stop-opacity="1" />
+      <stop offset="50%" stop-color="#22C55E" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#22C55E" stop-opacity="0" />
+    </radialGradient>
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Container Squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="110" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="12" />
+
+  <!-- Radar Rings -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#38BDF8" stroke-opacity="0.25" stroke-width="3" />
+  <circle cx="256" cy="256" r="130" fill="none" stroke="#38BDF8" stroke-opacity="0.4" stroke-width="4" stroke-dasharray="8 6" />
+  <circle cx="256" cy="256" r="80" fill="none" stroke="#38BDF8" stroke-opacity="0.6" stroke-width="4" />
+
+  <!-- Radar Axes -->
+  <line x1="76" y1="256" x2="436" y2="256" stroke="#38BDF8" stroke-opacity="0.2" stroke-width="3" />
+  <line x1="256" y1="76" x2="256" y2="436" stroke="#38BDF8" stroke-opacity="0.2" stroke-width="3" />
+
+  <!-- Radar Sweep -->
+  <path d="M 256 256 L 383 129 A 180 180 0 0 1 436 256 Z" fill="url(#sweepGrad)" />
+
+  <!-- Target Blip -->
+  <circle cx="365" cy="170" r="28" fill="url(#blipGlow)" />
+  <circle cx="365" cy="170" r="10" fill="#4ADE80" filter="url(#neonGlow)" />
+
+  <!-- Code Glyphs < / > in Center -->
+  <g stroke-linecap="round" stroke-linejoin="round" filter="url(#neonGlow)">
+    <!-- Left chevron '<' -->
+    <path d="M 205 210 L 170 256 L 205 302" fill="none" stroke="#FFFFFF" stroke-width="16" />
+    <!-- Right chevron '>' -->
+    <path d="M 307 210 L 342 256 L 307 302" fill="none" stroke="#FFFFFF" stroke-width="16" />
+    <!-- Slash '/' -->
+    <line x1="272" y1="195" x2="240" y2="317" stroke="#38BDF8" stroke-width="16" />
+  </g>
+</svg>
