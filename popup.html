@@ -14,16 +14,16 @@
         <img src="logo/icon32.png" alt="CodeRadar" class="brand-logo" />
         <div class="brand-info">
           <h1 class="brand-title">CodeRadar</h1>
-          <span class="brand-subtitle">Contest Tracker</span>
+          <span class="brand-subtitle">Contest Radar & Tracker</span>
         </div>
       </div>
       <div class="topbar-actions">
-        <button id="refreshBtn" class="action-icon-btn" title="Refresh contests" aria-label="Refresh">
+        <button id="refreshBtn" class="action-icon-btn" title="Refresh contests (R)" aria-label="Refresh">
           <svg id="refreshIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
           </svg>
         </button>
-        <button id="settingsBtn" class="action-icon-btn" title="Settings & Options" aria-label="Settings">
+        <button id="settingsBtn" class="action-icon-btn" title="Settings & Preferences (,)" aria-label="Settings">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -32,46 +32,99 @@
       </div>
     </header>
 
-    <!-- Search Box -->
+    <!-- Profile HUD (Rating Tracker Banner) -->
+    <div id="profileSection" class="profile-section">
+      <!-- State A: Profile Loaded -->
+      <div id="profileHud" class="profile-card hidden">
+        <img id="userAvatar" class="user-avatar" src="logo/icon32.png" alt="Avatar" />
+        <div class="user-meta">
+          <div class="user-row-primary">
+            <span id="userHandle" class="user-handle">handle</span>
+            <span id="userRankBadge" class="user-rank-badge">Expert</span>
+          </div>
+          <div class="user-row-secondary">
+            <span>Rating: <strong id="userRating" class="user-rating-val">1642</strong></span>
+            <span class="bullet">•</span>
+            <span>Max: <strong id="userMaxRating">1710</strong></span>
+          </div>
+        </div>
+        <button id="editHandleBtn" class="btn-ghost-icon" title="Change handle">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- State B: Add Handle Prompt -->
+      <div id="profilePrompt" class="profile-prompt">
+        <button id="addHandleBtn" class="add-handle-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Connect Codeforces Handle</span>
+          <span class="plus-tag">+</span>
+        </button>
+      </div>
+
+      <!-- State C: Inline Handle Input Form -->
+      <div id="handleForm" class="handle-form hidden">
+        <input type="text" id="handleInput" placeholder="Codeforces username (e.g. tourist)" autocomplete="off" />
+        <button id="saveHandleBtn" class="btn-save-handle">Save</button>
+        <button id="cancelHandleBtn" class="btn-cancel-handle">&times;</button>
+      </div>
+    </div>
+
+    <!-- Search Box with Shortcut Badge -->
     <div class="search-container">
       <div class="search-box">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="text" id="searchInput" placeholder="Search by round, contest, division..." autocomplete="off" spellcheck="false" />
+        <input type="text" id="searchInput" placeholder="Search rounds, divisions, or platforms..." autocomplete="off" spellcheck="false" />
+        <span class="kbd-shortcut" title="Press Ctrl+K or / to search">Ctrl K</span>
         <button id="clearSearchBtn" class="search-clear-btn" title="Clear search" style="display: none;">&times;</button>
       </div>
+    </div>
+
+    <!-- Duration Filter Pills -->
+    <div class="duration-filter-bar">
+      <button class="dur-pill active" data-dur="all">All Lengths</button>
+      <button class="dur-pill" data-dur="short">&lt; 2h (Speed)</button>
+      <button class="dur-pill" data-dur="medium">2h - 3h (Standard)</button>
+      <button class="dur-pill" data-dur="long">&gt; 3h</button>
     </div>
 
     <!-- Segmented Navigation Tabs -->
     <div class="tabs-container">
       <div class="segmented-control" role="tablist">
-        <button class="tab-item active" data-tab="all">
+        <button class="tab-item active" data-tab="all" title="Shortcut: Press 1">
           <span>All</span>
           <span class="tab-pill" id="countAll">0</span>
         </button>
-        <button class="tab-item" data-tab="live">
+        <button class="tab-item" data-tab="live" title="Shortcut: Press 2">
           <span class="live-dot-pulse"></span>
           <span>Live</span>
           <span class="tab-pill" id="countLive">0</span>
         </button>
-        <button class="tab-item" data-tab="today">
+        <button class="tab-item" data-tab="today" title="Shortcut: Press 3">
           <span>Today</span>
           <span class="tab-pill" id="countToday">0</span>
         </button>
-        <button class="tab-item" data-tab="upcoming">
+        <button class="tab-item" data-tab="upcoming" title="Shortcut: Press 4">
           <span>Upcoming</span>
           <span class="tab-pill" id="countUpcoming">0</span>
         </button>
-        <button class="tab-item" data-tab="saved">
+        <button class="tab-item" data-tab="saved" title="Shortcut: Press 5">
           <span>Starred</span>
           <span class="tab-pill" id="countSaved">0</span>
         </button>
       </div>
     </div>
 
-    <!-- Platform Filter Strip (Horizontal Scrollable Chips) -->
+    <!-- Platform Filter Strip -->
     <div class="platform-strip-wrapper">
       <div class="platform-strip" id="platformChipsContainer">
         <!-- Rendered dynamically -->
@@ -92,23 +145,80 @@
         <span id="syncStatus" class="status-text">Ready</span>
       </div>
       <div class="status-right">
+        <span id="tzDisplay" class="tz-pill">UTC</span>
         <span id="contestCountDisplay" class="count-text">0 contests</span>
       </div>
     </footer>
+
+    <!-- Universal Calendar Dropdown Popover -->
+    <div id="calendarPopover" class="calendar-popover hidden">
+      <div class="popover-title">Sync Contest</div>
+      <button id="calGoogleBtn" class="popover-option">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+        </svg>
+        <span>Google Calendar</span>
+      </button>
+      <button id="calOutlookBtn" class="popover-option">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="9" y1="21" x2="9" y2="9"></line>
+        </svg>
+        <span>Outlook / Office 365</span>
+      </button>
+      <button id="calIcsBtn" class="popover-option">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Download .ICS File (Apple / Win)</span>
+      </button>
+    </div>
 
     <!-- Settings Dialog -->
     <div id="settingsModal" class="dialog-backdrop hidden">
       <div class="dialog-panel">
         <div class="dialog-header">
-          <h2 class="dialog-title">Settings & Preferences</h2>
+          <h2 class="dialog-title">Settings & Customization</h2>
           <button id="closeSettingsBtn" class="dialog-close" aria-label="Close dialog">&times;</button>
         </div>
 
         <div class="dialog-body">
+          <!-- Theme Accent Picker -->
+          <div class="setting-row">
+            <div class="setting-meta">
+              <span class="setting-title">Theme Accent Color</span>
+              <span class="setting-desc">Personalize your interface accent</span>
+            </div>
+            <div class="accent-picker">
+              <button class="accent-dot active" data-accent="cyan" style="background: #38bdf8;" title="Electric Cyan"></button>
+              <button class="accent-dot" data-accent="emerald" style="background: #10b981;" title="Terminal Emerald"></button>
+              <button class="accent-dot" data-accent="violet" style="background: #a855f7;" title="Violet Nebula"></button>
+              <button class="accent-dot" data-accent="amber" style="background: #f59e0b;" title="Solar Amber"></button>
+            </div>
+          </div>
+
+          <!-- Time Format -->
+          <div class="setting-row">
+            <div class="setting-meta">
+              <span class="setting-title">Clock Format</span>
+              <span class="setting-desc">Switch between 12-hour (PM) and 24-hour time</span>
+            </div>
+            <select id="timeFormatSelect" class="form-select">
+              <option value="12" selected>12-hour (8:05 PM)</option>
+              <option value="24">24-hour (20:05)</option>
+            </select>
+          </div>
+
+          <!-- Alert Timing -->
           <div class="setting-row">
             <div class="setting-meta">
               <span class="setting-title">Desktop Alert Timing</span>
-              <span class="setting-desc">When to fire Chrome notifications before contests</span>
+              <span class="setting-desc">When to fire desktop notifications before contest</span>
             </div>
             <select id="reminderOffsetSelect" class="form-select">
               <option value="5">5 min before</option>
@@ -118,10 +228,11 @@
             </select>
           </div>
 
+          <!-- Hide Long Challenges Switch -->
           <div class="setting-row">
             <div class="setting-meta">
-              <span class="setting-title">Hide Long Challenges</span>
-              <span class="setting-desc">Filter out multi-week hackathons (> 24 hours)</span>
+              <span class="setting-title">Hide Long Challenges (> 24h)</span>
+              <span class="setting-desc">Hide multi-week hackathons to focus on timed rounds</span>
             </div>
             <label class="switch">
               <input type="checkbox" id="hideLongContestsSwitch" checked />
@@ -129,10 +240,26 @@
             </label>
           </div>
 
+          <!-- Keyboard Shortcuts Cheatsheet -->
+          <div class="shortcuts-box">
+            <span class="shortcuts-title">Keyboard Shortcuts</span>
+            <div class="shortcut-list">
+              <div class="shortcut-item"><kbd>Ctrl K</kbd> / <kbd>/</kbd> <span>Focus Search</span></div>
+              <div class="shortcut-item"><kbd>1</kbd> - <kbd>5</kbd> <span>Switch Tabs</span></div>
+              <div class="shortcut-item"><kbd>R</kbd> <span>Refresh</span></div>
+              <div class="shortcut-item"><kbd>&uarr;</kbd> <kbd>&darr;</kbd> <span>Navigate Cards</span></div>
+              <div class="shortcut-item"><kbd>Enter</kbd> <span>Open Selected</span></div>
+              <div class="shortcut-item"><kbd>S</kbd> <span>Star / Bookmark</span></div>
+              <div class="shortcut-item"><kbd>C</kbd> <span>Sync Calendar</span></div>
+              <div class="shortcut-item"><kbd>Esc</kbd> <span>Clear / Close</span></div>
+            </div>
+          </div>
+
+          <!-- Custom CLIST API Key -->
           <div class="setting-row block-row">
             <div class="setting-meta">
               <span class="setting-title">Custom CLIST API (Optional)</span>
-              <span class="setting-desc">Use your own free Clist account for higher personal rate limits</span>
+              <span class="setting-desc">Use your own free Clist account for higher rate limits</span>
             </div>
             <div class="input-group">
               <input type="text" id="clistUsernameInput" class="form-input" placeholder="Clist Username" />
@@ -140,15 +267,10 @@
             </div>
             <a href="https://clist.by/api/v4/doc/" target="_blank" rel="noopener" class="link-hint">Get free API key from clist.by &rarr;</a>
           </div>
-
-          <div class="about-box">
-            <span class="about-app-name">CodeRadar v1.0.0</span>
-            <p class="about-desc">Crafted for competitive coders, students, and engineers. Zero trackers, 100% private.</p>
-          </div>
         </div>
 
         <div class="dialog-footer">
-          <button id="saveSettingsBtn" class="btn-primary">Done</button>
+          <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
         </div>
       </div>
     </div>

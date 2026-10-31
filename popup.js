@@ -1,6 +1,6 @@
 /**
- * CodeRadar - Frontend Application Logic (ES6+ Vanilla)
- * High-performance, clean, robust contest tracker.
+ * CodeRadar - Premium Frontend Engine (ES6+ Vanilla)
+ * Keyboard-first navigation, live Codeforces profile tracker, multi-calendar export, and personalized themes.
  */
 
 // Supported Platforms Configuration
@@ -15,17 +15,38 @@ const PLATFORMS_CONFIG = {
   'naukri.com/code360': { name: 'Code360', icon: 'images/naukri.jpg' }
 };
 
+// Codeforces Rank Colors
+const CF_RANK_COLORS = {
+  'newbie': '#9ca3af',
+  'pupil': '#34d399',
+  'specialist': '#38bdf8',
+  'expert': '#60a5fa',
+  'candidate master': '#c084fc',
+  'master': '#fb923c',
+  'international master': '#fb923c',
+  'grandmaster': '#ef4444',
+  'international grandmaster': '#ef4444',
+  'legendary grandmaster': '#ef4444'
+};
+
 // Application State
 const state = {
   contests: [],
   activeTab: 'all',
+  activeDurFilter: 'all', // 'all', 'short', 'medium', 'long'
   searchQuery: '',
   selectedPlatforms: Object.keys(PLATFORMS_CONFIG),
   bookmarkedIds: [],
   reminders: {}, // contestId -> details
+  selectedCardIndex: -1,
+  activeCalendarContest: null,
+  cfProfile: null,
   settings: {
+    cfHandle: '',
     reminderMinutes: 15,
     hideLongContests: true,
+    timeFormat: '12', // '12' or '24'
+    themeAccent: 'cyan', // 'cyan', 'emerald', 'violet', 'amber'
     customClistUsername: '',
     customClistApiKey: ''
   },
@@ -38,6 +59,7 @@ const elements = {
   searchInput: document.getElementById('searchInput'),
   clearSearchBtn: document.getElementById('clearSearchBtn'),
   tabItems: document.querySelectorAll('.tab-item'),
+  durPills: document.querySelectorAll('.dur-pill'),
   refreshBtn: document.getElementById('refreshBtn'),
   refreshIcon: document.getElementById('refreshIcon'),
   platformChipsContainer: document.getElementById('platformChipsContainer'),
@@ -46,36 +68,94 @@ const elements = {
   closeSettingsBtn: document.getElementById('closeSettingsBtn'),
   saveSettingsBtn: document.getElementById('saveSettingsBtn'),
   reminderOffsetSelect: document.getElementById('reminderOffsetSelect'),
+  timeFormatSelect: document.getElementById('timeFormatSelect'),
   hideLongContestsSwitch: document.getElementById('hideLongContestsSwitch'),
   clistUsernameInput: document.getElementById('clistUsernameInput'),
   clistApiKeyInput: document.getElementById('clistApiKeyInput'),
   syncStatus: document.getElementById('syncStatus'),
   contestCountDisplay: document.getElementById('contestCountDisplay'),
+  tzDisplay: document.getElementById('tzDisplay'),
   countAll: document.getElementById('countAll'),
   countLive: document.getElementById('countLive'),
   countToday: document.getElementById('countToday'),
   countUpcoming: document.getElementById('countUpcoming'),
-  countSaved: document.getElementById('countSaved')
+  countSaved: document.getElementById('countSaved'),
+  // Profile elements
+  profileHud: document.getElementById('profileHud'),
+  profilePrompt: document.getElementById('profilePrompt'),
+  handleForm: document.getElementById('handleForm'),
+  handleInput: document.getElementById('handleInput'),
+  addHandleBtn: document.getElementById('addHandleBtn'),
+  saveHandleBtn: document.getElementById('saveHandleBtn'),
+  cancelHandleBtn: document.getElementById('cancelHandleBtn'),
+  editHandleBtn: document.getElementById('editHandleBtn'),
+  userAvatar: document.getElementById('userAvatar'),
+  userHandle: document.getElementById('userHandle'),
+  userRankBadge: document.getElementById('userRankBadge'),
+  userRating: document.getElementById('userRating'),
+  userMaxRating: document.getElementById('userMaxRating'),
+  // Calendar popover
+  calendarPopover: document.getElementById('calendarPopover'),
+  calGoogleBtn: document.getElementById('calGoogleBtn'),
+  calOutlookBtn: document.getElementById('calOutlookBtn'),
+  calIcsBtn: document.getElementById('calIcsBtn'),
+  // Theme dots
+  accentDots: document.querySelectorAll('.accent-dot')
 };
 
-// App Initialization
+// Application Bootstrap
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
+  setupKeyboardShortcuts();
+  detectTimezone();
   await loadStoredData();
+  applyThemeAccent(state.settings.themeAccent || 'cyan');
   renderPlatformChips();
   renderContests();
 
-  // Background sync if cache is empty
+  // If handle saved, refresh profile in background
+  if (state.settings.cfHandle) {
+    refreshCfProfile(state.settings.cfHandle);
+  }
+
+  // Sync contests if cache is empty
   const shouldFetch = state.contests.length === 0;
   await fetchContests(shouldFetch);
 });
 
 /**
- * Load settings, bookmarks, and cached contests from local storage
+ * Detect Local Timezone
+ */
+function detectTimezone() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const shortTz = new Date().toLocaleTimeString('en-us', { timeZoneName: 'short' }).split(' ')[2] || 'UTC';
+    elements.tzDisplay.textContent = shortTz;
+    elements.tzDisplay.title = `Timezone: ${tz}`;
+  } catch (e) {
+    elements.tzDisplay.textContent = 'LOCAL';
+  }
+}
+
+/**
+ * Apply Theme Accent Class
+ */
+function applyThemeAccent(accent) {
+  document.body.classList.remove('theme-cyan', 'theme-emerald', 'theme-violet', 'theme-amber');
+  if (accent !== 'cyan') {
+    document.body.classList.add(`theme-${accent}`);
+  }
+  elements.accentDots.forEach((dot) => {
+    dot.classList.toggle('active', dot.dataset.accent === accent);
+  });
+}
+
+/**
+ * Load Persistent State from chrome.storage.local
  */
 async function loadStoredData() {
   try {
-    const data = await chrome.storage.local.get(['contests', 'settings', 'bookmarkedIds']);
+    const data = await chrome.storage.local.get(['contests', 'settings', 'bookmarkedIds', 'cfProfile']);
 
     if (data.settings) {
       state.settings = { ...state.settings, ...data.settings };
@@ -91,23 +171,84 @@ async function loadStoredData() {
       state.bookmarkedIds = data.bookmarkedIds;
     }
 
+    if (data.cfProfile) {
+      state.cfProfile = data.cfProfile;
+      renderProfileHud(data.cfProfile);
+    } else if (state.settings.cfHandle) {
+      renderProfilePrompt(false);
+    }
+
     if (Array.isArray(data.contests) && data.contests.length > 0) {
       state.contests = data.contests;
       elements.syncStatus.textContent = 'Synced from local cache';
     }
   } catch (err) {
-    console.warn('[CodeRadar] Local storage read error:', err);
+    console.warn('[CodeRadar] Storage read error:', err);
   }
+}
+
+/**
+ * Codeforces Profile HUD Pipeline
+ */
+async function refreshCfProfile(handle) {
+  if (!handle) return;
+  try {
+    const res = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(handle)}`);
+    const data = await res.json();
+    if (data.status === 'OK' && Array.isArray(data.result) && data.result.length > 0) {
+      const u = data.result[0];
+      const profile = {
+        handle: u.handle,
+        rating: u.rating || 0,
+        maxRating: u.maxRating || 0,
+        rank: u.rank || 'unrated',
+        maxRank: u.maxRank || 'unrated',
+        titlePhoto: u.titlePhoto
+      };
+      state.cfProfile = profile;
+      await chrome.storage.local.set({ cfProfile: profile });
+      renderProfileHud(profile);
+    }
+  } catch (err) {
+    console.warn('[CodeRadar] Failed to fetch Codeforces profile:', err);
+  }
+}
+
+function renderProfileHud(profile) {
+  elements.profilePrompt.classList.add('hidden');
+  elements.handleForm.classList.add('hidden');
+  elements.profileHud.classList.remove('hidden');
+
+  elements.userAvatar.src = profile.titlePhoto && profile.titlePhoto.startsWith('http')
+    ? profile.titlePhoto
+    : 'logo/icon32.png';
+  elements.userHandle.textContent = profile.handle;
+  elements.userRankBadge.textContent = profile.rank;
+  elements.userRating.textContent = profile.rating;
+  elements.userMaxRating.textContent = profile.maxRating;
+
+  const color = CF_RANK_COLORS[profile.rank.toLowerCase()] || '#9ca3af';
+  elements.userRankBadge.style.backgroundColor = `${color}22`;
+  elements.userRankBadge.style.color = color;
+  elements.userRankBadge.style.border = `1px solid ${color}44`;
+  elements.userRating.style.color = color;
+}
+
+function renderProfilePrompt(show = true) {
+  elements.profileHud.classList.add('hidden');
+  elements.handleForm.classList.add('hidden');
+  elements.profilePrompt.classList.toggle('hidden', !show);
 }
 
 /**
  * Setup Event Listeners
  */
 function setupEventListeners() {
-  // Live Search
+  // Search
   elements.searchInput.addEventListener('input', (e) => {
     state.searchQuery = e.target.value.trim().toLowerCase();
     elements.clearSearchBtn.style.display = state.searchQuery ? 'block' : 'none';
+    state.selectedCardIndex = -1;
     renderContests();
   });
 
@@ -115,7 +256,18 @@ function setupEventListeners() {
     elements.searchInput.value = '';
     state.searchQuery = '';
     elements.clearSearchBtn.style.display = 'none';
+    elements.searchInput.focus();
     renderContests();
+  });
+
+  // Duration Filter Pills
+  elements.durPills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      elements.durPills.forEach((p) => p.classList.remove('active'));
+      pill.classList.add('active');
+      state.activeDurFilter = pill.dataset.dur;
+      renderContests();
+    });
   });
 
   // Segmented Tabs
@@ -124,23 +276,66 @@ function setupEventListeners() {
       elements.tabItems.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       state.activeTab = btn.dataset.tab;
+      state.selectedCardIndex = -1;
       renderContests();
     });
   });
 
-  // Refresh Button
+  // Refresh
   elements.refreshBtn.addEventListener('click', async () => {
     elements.refreshIcon.classList.add('spin');
     await fetchContests(true);
+    if (state.settings.cfHandle) refreshCfProfile(state.settings.cfHandle);
     setTimeout(() => elements.refreshIcon.classList.remove('spin'), 750);
+  });
+
+  // Profile Handle Input Actions
+  elements.addHandleBtn.addEventListener('click', () => {
+    elements.profilePrompt.classList.add('hidden');
+    elements.handleForm.classList.remove('hidden');
+    elements.handleInput.value = state.settings.cfHandle || '';
+    elements.handleInput.focus();
+  });
+
+  elements.cancelHandleBtn.addEventListener('click', () => {
+    elements.handleForm.classList.add('hidden');
+    if (state.cfProfile) elements.profileHud.classList.remove('hidden');
+    else elements.profilePrompt.classList.remove('hidden');
+  });
+
+  elements.editHandleBtn.addEventListener('click', () => {
+    elements.profileHud.classList.add('hidden');
+    elements.handleForm.classList.remove('hidden');
+    elements.handleInput.value = state.settings.cfHandle || '';
+    elements.handleInput.focus();
+  });
+
+  elements.saveHandleBtn.addEventListener('click', async () => {
+    const handle = elements.handleInput.value.trim();
+    state.settings.cfHandle = handle;
+    await chrome.storage.local.set({ settings: state.settings });
+    if (handle) {
+      await refreshCfProfile(handle);
+    } else {
+      state.cfProfile = null;
+      await chrome.storage.local.remove('cfProfile');
+      renderProfilePrompt(true);
+    }
+  });
+
+  elements.handleInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') elements.saveHandleBtn.click();
+    else if (e.key === 'Escape') elements.cancelHandleBtn.click();
   });
 
   // Settings Dialog
   elements.settingsBtn.addEventListener('click', () => {
     elements.reminderOffsetSelect.value = state.settings.reminderMinutes || 15;
+    elements.timeFormatSelect.value = state.settings.timeFormat || '12';
     elements.hideLongContestsSwitch.checked = state.settings.hideLongContests !== false;
     elements.clistUsernameInput.value = state.settings.customClistUsername || '';
     elements.clistApiKeyInput.value = state.settings.customClistApiKey || '';
+    applyThemeAccent(state.settings.themeAccent || 'cyan');
     elements.settingsModal.classList.remove('hidden');
   });
 
@@ -148,8 +343,18 @@ function setupEventListeners() {
     elements.settingsModal.classList.add('hidden');
   });
 
+  // Accent Dot Click
+  elements.accentDots.forEach((dot) => {
+    dot.addEventListener('click', () => {
+      const accent = dot.dataset.accent;
+      state.settings.themeAccent = accent;
+      applyThemeAccent(accent);
+    });
+  });
+
   elements.saveSettingsBtn.addEventListener('click', async () => {
     state.settings.reminderMinutes = parseInt(elements.reminderOffsetSelect.value, 10);
+    state.settings.timeFormat = elements.timeFormatSelect.value;
     state.settings.hideLongContests = elements.hideLongContestsSwitch.checked;
     state.settings.customClistUsername = elements.clistUsernameInput.value.trim();
     state.settings.customClistApiKey = elements.clistApiKeyInput.value.trim();
@@ -161,14 +366,154 @@ function setupEventListeners() {
   });
 
   elements.settingsModal.addEventListener('click', (e) => {
-    if (e.target === elements.settingsModal) {
-      elements.settingsModal.classList.add('hidden');
+    if (e.target === elements.settingsModal) elements.settingsModal.classList.add('hidden');
+  });
+
+  // Calendar Popover Options
+  elements.calGoogleBtn.addEventListener('click', () => {
+    if (state.activeCalendarContest) {
+      const url = createGoogleCalendarUrl(state.activeCalendarContest);
+      window.open(url, '_blank');
+      hideCalendarPopover();
+    }
+  });
+
+  elements.calOutlookBtn.addEventListener('click', () => {
+    if (state.activeCalendarContest) {
+      const url = createOutlookCalendarUrl(state.activeCalendarContest);
+      window.open(url, '_blank');
+      hideCalendarPopover();
+    }
+  });
+
+  elements.calIcsBtn.addEventListener('click', () => {
+    if (state.activeCalendarContest) {
+      downloadIcsFile(state.activeCalendarContest);
+      hideCalendarPopover();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!elements.calendarPopover.classList.contains('hidden')) {
+      if (!elements.calendarPopover.contains(e.target) && !e.target.closest('.cal-trigger-btn')) {
+        hideCalendarPopover();
+      }
+    }
+  });
+}
+
+function showCalendarPopover(contest, btnElement) {
+  state.activeCalendarContest = contest;
+  const rect = btnElement.getBoundingClientRect();
+  elements.calendarPopover.style.top = `${rect.top - 120}px`;
+  elements.calendarPopover.style.left = `${Math.max(16, rect.left - 40)}px`;
+  elements.calendarPopover.classList.remove('hidden');
+}
+
+function hideCalendarPopover() {
+  elements.calendarPopover.classList.add('hidden');
+  state.activeCalendarContest = null;
+}
+
+/**
+ * Keyboard Power-User Navigation (Raycast Style)
+ */
+function setupKeyboardShortcuts() {
+  window.addEventListener('keydown', (e) => {
+    // If typing in search or input form, don't hijack unless it's Esc or Enter
+    const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT';
+
+    // Global: Ctrl+K or / focuses search
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      elements.searchInput.focus();
+      elements.searchInput.select();
+      return;
+    }
+
+    if (!inInput && e.key === '/') {
+      e.preventDefault();
+      elements.searchInput.focus();
+      return;
+    }
+
+    // Esc closes popovers / modals or clears search
+    if (e.key === 'Escape') {
+      if (!elements.settingsModal.classList.contains('hidden')) {
+        elements.settingsModal.classList.add('hidden');
+        return;
+      }
+      if (!elements.calendarPopover.classList.contains('hidden')) {
+        hideCalendarPopover();
+        return;
+      }
+      if (elements.searchInput.value) {
+        elements.clearSearchBtn.click();
+        return;
+      }
+    }
+
+    if (inInput) return; // Don't trigger letter shortcuts when typing
+
+    // Number keys 1-5 switch tabs
+    if (['1', '2', '3', '4', '5'].includes(e.key)) {
+      const idx = parseInt(e.key, 10) - 1;
+      if (elements.tabItems[idx]) {
+        elements.tabItems[idx].click();
+      }
+      return;
+    }
+
+    // 'R' refreshes
+    if (e.key.toLowerCase() === 'r') {
+      elements.refreshBtn.click();
+      return;
+    }
+
+    // Arrow navigation for contest cards
+    const cards = document.querySelectorAll('.contest-card');
+    if (cards.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      state.selectedCardIndex = Math.min(state.selectedCardIndex + 1, cards.length - 1);
+      highlightSelectedCard(cards);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      state.selectedCardIndex = Math.max(state.selectedCardIndex - 1, 0);
+      highlightSelectedCard(cards);
+    } else if (e.key === 'Enter') {
+      if (state.selectedCardIndex >= 0 && cards[state.selectedCardIndex]) {
+        const titleLink = cards[state.selectedCardIndex].querySelector('.contest-headline');
+        if (titleLink) window.open(titleLink.href, '_blank');
+      }
+    } else if (e.key.toLowerCase() === 's') {
+      if (state.selectedCardIndex >= 0 && cards[state.selectedCardIndex]) {
+        const starBtn = cards[state.selectedCardIndex].querySelector('.star-btn');
+        if (starBtn) starBtn.click();
+      }
+    } else if (e.key.toLowerCase() === 'c') {
+      if (state.selectedCardIndex >= 0 && cards[state.selectedCardIndex]) {
+        const calBtn = cards[state.selectedCardIndex].querySelector('.cal-trigger-btn');
+        if (calBtn) calBtn.click();
+      }
+    }
+  });
+}
+
+function highlightSelectedCard(cards) {
+  cards.forEach((c, idx) => {
+    if (idx === state.selectedCardIndex) {
+      c.classList.add('card-selected');
+      c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      c.classList.remove('card-selected');
     }
   });
 }
 
 /**
- * Render Horizontal Platform Filter Chips
+ * Render Platform Filter Chips
  */
 function renderPlatformChips() {
   elements.platformChipsContainer.innerHTML = '';
@@ -257,7 +602,7 @@ async function fetchContests(showSkeleton = false) {
 }
 
 /**
- * Direct official Codeforces fallback
+ * Direct official Codeforces API fallback
  */
 async function tryCodeforcesFallback() {
   try {
@@ -292,22 +637,27 @@ async function tryCodeforcesFallback() {
 }
 
 /**
- * Filter contests based on active tab, search query, platform, and duration
+ * Filter Contests
  */
 function getFilteredContests() {
   const now = new Date();
   const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   return state.contests.filter((contest) => {
-    // Platform selection
+    // Platform
     if (state.selectedPlatforms.length > 0 && !state.selectedPlatforms.includes(contest.resource)) {
       return false;
     }
 
-    // Hide long hackathons (> 24 hours)
+    // Duration Setting (> 24 hours)
     if (state.settings.hideLongContests && contest.duration > 86400) {
       return false;
     }
+
+    // Duration Quick Pill Filter
+    if (state.activeDurFilter === 'short' && contest.duration > 7200) return false;
+    if (state.activeDurFilter === 'medium' && (contest.duration <= 7200 || contest.duration > 10800)) return false;
+    if (state.activeDurFilter === 'long' && contest.duration <= 10800) return false;
 
     // Search query
     if (state.searchQuery) {
@@ -337,7 +687,7 @@ function getFilteredContests() {
 }
 
 /**
- * Update tab counts
+ * Tab Counts
  */
 function updateTabCounts() {
   const now = new Date();
@@ -380,25 +730,25 @@ function renderContests() {
     return;
   }
 
-  const html = filtered.map((c) => createContestCardHtml(c)).join('');
+  const html = filtered.map((c, idx) => createContestCardHtml(c, idx)).join('');
   elements.contestList.innerHTML = html;
 
   attachCardActionListeners();
 }
 
 /**
- * Clean Empty State View
+ * Empty State View
  */
 function renderEmptyState() {
   let title = 'No contests found';
-  let desc = 'Try selecting more platforms or clearing your search query.';
+  let desc = 'Try selecting more platforms or resetting your duration filter.';
 
   if (state.activeTab === 'live') {
     title = 'No live contests right now';
     desc = 'Check the Today or Upcoming tabs to see what rounds start next.';
   } else if (state.activeTab === 'saved') {
     title = 'No starred contests';
-    desc = 'Star any contest using the bookmark button to pin it here.';
+    desc = 'Star any contest using the bookmark button or press [S] to pin it here.';
   } else if (state.searchQuery) {
     title = 'No search results';
     desc = `No contests match "${escapeHtml(state.searchQuery)}".`;
@@ -420,7 +770,7 @@ function renderEmptyState() {
 /**
  * High-Legibility Contest Card HTML
  */
-function createContestCardHtml(contest) {
+function createContestCardHtml(contest, index) {
   const conf = PLATFORMS_CONFIG[contest.resource] || { name: contest.resource, icon: 'logo/icon16.png' };
   const now = new Date();
   const start = new Date(contest.start.endsWith('Z') ? contest.start : contest.start + '.000Z');
@@ -429,8 +779,9 @@ function createContestCardHtml(contest) {
   const isLive = start <= now && end >= now;
   const isBookmarked = state.bookmarkedIds.includes(contest.id);
   const hasReminder = Boolean(state.reminders && state.reminders[contest.id]);
+  const isSelected = index === state.selectedCardIndex;
 
-  // Clean status badge
+  // Status badge
   let statusBadgeHtml = '';
   if (isLive) {
     const timeLeft = formatDuration((end.getTime() - now.getTime()) / 1000);
@@ -446,7 +797,7 @@ function createContestCardHtml(contest) {
     }
   }
 
-  // Friendly human readable date formatting
+  // Time & Date format
   const isToday = start.toDateString() === now.toDateString();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -459,12 +810,16 @@ function createContestCardHtml(contest) {
     datePrefix = start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  const timeString = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const use24h = state.settings.timeFormat === '24';
+  const timeString = start.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: !use24h
+  });
   const durationString = formatDuration(contest.duration);
-  const gcalUrl = createGoogleCalendarUrl(contest, start, end);
 
   return `
-    <article class="contest-card ${isLive ? 'card-live' : ''}" data-id="${contest.id}">
+    <article class="contest-card ${isLive ? 'card-live' : ''} ${isSelected ? 'card-selected' : ''}" data-id="${contest.id}" data-index="${index}">
       <div class="card-header-row">
         <div class="platform-identity">
           <img src="${conf.icon}" alt="${conf.name}" class="platform-logo-img" />
@@ -499,8 +854,8 @@ function createContestCardHtml(contest) {
 
       <div class="card-footer-row">
         <div class="actions-cluster">
-          <!-- Add to Calendar -->
-          <a href="${gcalUrl}" target="_blank" rel="noopener" class="btn-utility" title="Sync with Google Calendar">
+          <!-- Calendar Dropdown Trigger -->
+          <button class="btn-utility cal-trigger-btn" data-id="${contest.id}" title="Sync with Google, Outlook or iCal [C]">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -509,7 +864,7 @@ function createContestCardHtml(contest) {
               <line x1="9" y1="14" x2="15" y2="14"></line>
             </svg>
             <span>+ Calendar</span>
-          </a>
+          </button>
 
           <!-- Alert Reminder -->
           <button class="btn-utility reminder-btn ${hasReminder ? 'active-bell' : ''}" data-id="${contest.id}" title="${hasReminder ? 'Cancel Alert' : 'Set 15m Desktop Alert'}">
@@ -521,14 +876,14 @@ function createContestCardHtml(contest) {
           </button>
 
           <!-- Star Bookmark -->
-          <button class="btn-utility star-btn ${isBookmarked ? 'active-star' : ''}" data-id="${contest.id}" title="${isBookmarked ? 'Remove Star' : 'Star Contest'}">
+          <button class="btn-utility star-btn ${isBookmarked ? 'active-star' : ''}" data-id="${contest.id}" title="${isBookmarked ? 'Remove Star [S]' : 'Star Contest [S]'}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
           </button>
         </div>
 
-        <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="link-participate">
+        <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="link-participate" title="Open contest page [Enter]">
           <span>Participate</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <line x1="7" y1="17" x2="17" y2="7"></line>
@@ -544,6 +899,17 @@ function createContestCardHtml(contest) {
  * Attach Card Action Listeners
  */
 function attachCardActionListeners() {
+  // Calendar Trigger
+  document.querySelectorAll('.cal-trigger-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const contest = state.contests.find((c) => String(c.id) === String(id));
+      if (contest) showCalendarPopover(contest, btn);
+    });
+  });
+
+  // Star
   document.querySelectorAll('.star-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -558,6 +924,7 @@ function attachCardActionListeners() {
     });
   });
 
+  // Reminder
   document.querySelectorAll('.reminder-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -592,7 +959,7 @@ function attachCardActionListeners() {
 }
 
 /**
- * Format Duration Helper
+ * Format Duration
  */
 function formatDuration(sec) {
   const totalMin = Math.floor(sec / 60);
@@ -606,23 +973,72 @@ function formatDuration(sec) {
 }
 
 /**
- * Construct Google Calendar URL
+ * Calendar Link Constructors
  */
-function createGoogleCalendarUrl(contest, startDate, endDate) {
+function getUtcDates(contest) {
+  const start = new Date(contest.start.endsWith('Z') ? contest.start : contest.start + '.000Z');
+  const end = new Date(contest.end.endsWith('Z') ? contest.end : contest.end + '.000Z');
   const pad = (n) => String(n).padStart(2, '0');
   const toUtc = (d) =>
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
 
-  const startUtc = toUtc(startDate);
-  const endUtc = toUtc(endDate);
+  return { start, end, startUtc: toUtc(start), endUtc: toUtc(end) };
+}
 
+function createGoogleCalendarUrl(contest) {
+  const { startUtc, endUtc } = getUtcDates(contest);
   const title = encodeURIComponent(`[${contest.resource}] ${contest.event}`);
   const details = encodeURIComponent(
-    `Contest: ${contest.event}\nPlatform: ${contest.resource}\nLink: ${contest.href}\n\nAdded via CodeRadar`
+    `Contest: ${contest.event}\nPlatform: ${contest.resource}\nLink: ${contest.href}\n\nTracked via CodeRadar`
   );
   const location = encodeURIComponent(contest.href);
-
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startUtc}/${endUtc}&details=${details}&location=${location}`;
+}
+
+function createOutlookCalendarUrl(contest) {
+  const { start, end } = getUtcDates(contest);
+  const title = encodeURIComponent(`[${contest.resource}] ${contest.event}`);
+  const details = encodeURIComponent(`Contest: ${contest.event}\nPlatform: ${contest.resource}\nLink: ${contest.href}`);
+  const location = encodeURIComponent(contest.href);
+  const startIso = encodeURIComponent(start.toISOString());
+  const endIso = encodeURIComponent(end.toISOString());
+
+  return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&body=${details}&location=${location}&startdt=${startIso}&enddt=${endIso}&path=/calendar/action/compose&rru=addevent`;
+}
+
+function downloadIcsFile(contest) {
+  const { startUtc, endUtc } = getUtcDates(contest);
+  const nowUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const cleanTitle = contest.event.replace(/[,;\n]/g, ' ');
+
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//CodeRadar//Contest Tracker//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:coderadar-${contest.id}@coderadar.local`,
+    `DTSTAMP:${nowUtc}`,
+    `DTSTART:${startUtc}`,
+    `DTEND:${endUtc}`,
+    `SUMMARY:[${contest.resource}] ${cleanTitle}`,
+    `DESCRIPTION:${contest.href}`,
+    `LOCATION:${contest.href}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${cleanTitle.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /**
