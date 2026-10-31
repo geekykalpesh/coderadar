@@ -32,47 +32,74 @@
       </div>
     </header>
 
-    <!-- Profile HUD (Rating Tracker Banner) -->
+    <!-- Multi-User Profile HUD Section -->
     <div id="profileSection" class="profile-section">
-      <!-- State A: Profile Loaded -->
-      <div id="profileHud" class="profile-card hidden">
-        <img id="userAvatar" class="user-avatar" src="logo/icon32.png" alt="Avatar" />
+      <!-- Multi-User Switcher Strip -->
+      <div id="userSwitcherStrip" class="user-switcher-strip">
+        <div id="userTabsContainer" class="user-tabs-container">
+          <!-- Rendered dynamically -->
+        </div>
+        <div class="user-strip-actions">
+          <button id="addUserBtn" class="btn-user-action" title="Add another user or friend">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Add User</span>
+          </button>
+          <button id="standingsBtn" class="btn-user-action icon-only" title="View Standings Leaderboard">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 20V10"></path>
+              <path d="M12 20V4"></path>
+              <path d="M6 20v-6"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active User Card -->
+      <div id="profileHud" class="profile-card">
+        <div id="userAvatarWrap" class="user-avatar-wrap">
+          <!-- Monogram or crisp Image -->
+        </div>
         <div class="user-meta">
           <div class="user-row-primary">
             <span id="userHandle" class="user-handle">handle</span>
-            <span id="userRankBadge" class="user-rank-badge">Expert</span>
+            <span id="userRankBadge" class="user-rank-badge">Rank</span>
           </div>
           <div class="user-row-secondary">
-            <span>Rating: <strong id="userRating" class="user-rating-val">1642</strong></span>
+            <span>Rating: <strong id="userRating" class="user-rating-val">0</strong></span>
             <span class="bullet">•</span>
-            <span>Max: <strong id="userMaxRating">1710</strong></span>
+            <span>Max: <strong id="userMaxRating">0</strong></span>
           </div>
         </div>
-        <button id="editHandleBtn" class="btn-ghost-icon" title="Change handle">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-        </button>
+        <div class="user-card-actions">
+          <button id="removeUserBtn" class="btn-ghost-icon" title="Remove this user">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <!-- State B: Add Handle Prompt -->
-      <div id="profilePrompt" class="profile-prompt">
-        <button id="addHandleBtn" class="add-handle-pill">
+      <!-- Add User Inline Form (Collapsible) -->
+      <div id="handleForm" class="handle-form hidden">
+        <input type="text" id="handleInput" placeholder="Enter Codeforces handle (e.g. tourist, geekykalpesh)" autocomplete="off" />
+        <button id="saveHandleBtn" class="btn-save-handle">Add User</button>
+        <button id="cancelHandleBtn" class="btn-cancel-handle">&times;</button>
+      </div>
+
+      <!-- Empty State: When no users added yet -->
+      <div id="profilePrompt" class="profile-prompt hidden">
+        <button id="addFirstHandleBtn" class="add-handle-pill">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
-          <span>Connect Codeforces Handle</span>
+          <span>Track your Codeforces ratings & friends</span>
           <span class="plus-tag">+</span>
         </button>
-      </div>
-
-      <!-- State C: Inline Handle Input Form -->
-      <div id="handleForm" class="handle-form hidden">
-        <input type="text" id="handleInput" placeholder="Codeforces username (e.g. tourist)" autocomplete="off" />
-        <button id="saveHandleBtn" class="btn-save-handle">Save</button>
-        <button id="cancelHandleBtn" class="btn-cancel-handle">&times;</button>
       </div>
     </div>
 
@@ -177,6 +204,21 @@
         </svg>
         <span>Download .ICS File (Apple / Win)</span>
       </button>
+    </div>
+
+    <!-- Friends Leaderboard Standings Dialog -->
+    <div id="standingsModal" class="dialog-backdrop hidden">
+      <div class="dialog-panel">
+        <div class="dialog-header">
+          <h2 class="dialog-title">Tracked Coders Standings</h2>
+          <button id="closeStandingsBtn" class="dialog-close">&times;</button>
+        </div>
+        <div class="dialog-body">
+          <div class="standings-table" id="standingsList">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Settings Dialog -->

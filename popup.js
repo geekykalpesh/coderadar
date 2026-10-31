@@ -1,6 +1,7 @@
 /**
  * CodeRadar - Premium Frontend Engine (ES6+ Vanilla)
- * Keyboard-first navigation, live Codeforces profile tracker, multi-calendar export, and personalized themes.
+ * Multi-user Codeforces tracker, bulletproof monogram avatar fallback,
+ * keyboard-first navigation, multi-calendar export, and personalization.
  */
 
 // Supported Platforms Configuration
@@ -26,7 +27,8 @@ const CF_RANK_COLORS = {
   'international master': '#fb923c',
   'grandmaster': '#ef4444',
   'international grandmaster': '#ef4444',
-  'legendary grandmaster': '#ef4444'
+  'legendary grandmaster': '#ef4444',
+  'unrated': '#9ca3af'
 };
 
 // Application State
@@ -40,9 +42,10 @@ const state = {
   reminders: {}, // contestId -> details
   selectedCardIndex: -1,
   activeCalendarContest: null,
-  cfProfile: null,
+  trackedUsers: [], // [{ handle, rating, maxRating, rank, maxRank, titlePhoto }]
+  activeUserHandle: '',
   settings: {
-    cfHandle: '',
+    cfHandle: '', // legacy fallback
     reminderMinutes: 15,
     hideLongContests: true,
     timeFormat: '12', // '12' or '24'
@@ -81,19 +84,27 @@ const elements = {
   countUpcoming: document.getElementById('countUpcoming'),
   countSaved: document.getElementById('countSaved'),
   // Profile elements
+  userSwitcherStrip: document.getElementById('userSwitcherStrip'),
+  userTabsContainer: document.getElementById('userTabsContainer'),
+  addUserBtn: document.getElementById('addUserBtn'),
+  standingsBtn: document.getElementById('standingsBtn'),
   profileHud: document.getElementById('profileHud'),
   profilePrompt: document.getElementById('profilePrompt'),
+  addFirstHandleBtn: document.getElementById('addFirstHandleBtn'),
   handleForm: document.getElementById('handleForm'),
   handleInput: document.getElementById('handleInput'),
-  addHandleBtn: document.getElementById('addHandleBtn'),
   saveHandleBtn: document.getElementById('saveHandleBtn'),
   cancelHandleBtn: document.getElementById('cancelHandleBtn'),
-  editHandleBtn: document.getElementById('editHandleBtn'),
-  userAvatar: document.getElementById('userAvatar'),
+  removeUserBtn: document.getElementById('removeUserBtn'),
+  userAvatarWrap: document.getElementById('userAvatarWrap'),
   userHandle: document.getElementById('userHandle'),
   userRankBadge: document.getElementById('userRankBadge'),
   userRating: document.getElementById('userRating'),
   userMaxRating: document.getElementById('userMaxRating'),
+  // Standings Dialog
+  standingsModal: document.getElementById('standingsModal'),
+  closeStandingsBtn: document.getElementById('closeStandingsBtn'),
+  standingsList: document.getElementById('standingsList'),
   // Calendar popover
   calendarPopover: document.getElementById('calendarPopover'),
   calGoogleBtn: document.getElementById('calGoogleBtn'),
@@ -113,9 +124,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderPlatformChips();
   renderContests();
 
-  // If handle saved, refresh profile in background
-  if (state.settings.cfHandle) {
-    refreshCfProfile(state.settings.cfHandle);
+  // Multi-user profile refresh
+  if (state.trackedUsers.length > 0) {
+    refreshAllTrackedUsers();
   }
 
   // Sync contests if cache is empty
@@ -155,7 +166,13 @@ function applyThemeAccent(accent) {
  */
 async function loadStoredData() {
   try {
-    const data = await chrome.storage.local.get(['contests', 'settings', 'bookmarkedIds', 'cfProfile']);
+    const data = await chrome.storage.local.get([
+      'contests',
+      'settings',
+      'bookmarkedIds',
+      'trackedUsers',
+      'activeUserHandle'
+    ]);
 
     if (data.settings) {
       state.settings = { ...state.settings, ...data.settings };
@@ -171,12 +188,17 @@ async function loadStoredData() {
       state.bookmarkedIds = data.bookmarkedIds;
     }
 
-    if (data.cfProfile) {
-      state.cfProfile = data.cfProfile;
-      renderProfileHud(data.cfProfile);
+    // Migrate from legacy single cfHandle if present
+    if (Array.isArray(data.trackedUsers) && data.trackedUsers.length > 0) {
+      state.trackedUsers = data.trackedUsers;
+      state.activeUserHandle = data.activeUserHandle || state.trackedUsers[0].handle;
     } else if (state.settings.cfHandle) {
-      renderProfilePrompt(false);
+      state.trackedUsers = [{ handle: state.settings.cfHandle, rating: 0, maxRating: 0, rank: 'unrated' }];
+      state.activeUserHandle = state.settings.cfHandle;
+      await chrome.storage.local.set({ trackedUsers: state.trackedUsers, activeUserHandle: state.activeUserHandle });
     }
+
+    renderMultiUserSection();
 
     if (Array.isArray(data.contests) && data.contests.length > 0) {
       state.contests = data.contests;
@@ -188,56 +210,191 @@ async function loadStoredData() {
 }
 
 /**
- * Codeforces Profile HUD Pipeline
+ * Multi-User Management Pipeline
  */
-async function refreshCfProfile(handle) {
-  if (!handle) return;
+async function refreshAllTrackedUsers() {
+  if (state.trackedUsers.length === 0) return;
+
+  const handles = state.trackedUsers.map((u) => u.handle);
   try {
-    const res = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(handle)}`);
+    const res = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(handles.join(';'))}`);
     const data = await res.json();
-    if (data.status === 'OK' && Array.isArray(data.result) && data.result.length > 0) {
-      const u = data.result[0];
-      const profile = {
-        handle: u.handle,
-        rating: u.rating || 0,
-        maxRating: u.maxRating || 0,
-        rank: u.rank || 'unrated',
-        maxRank: u.maxRank || 'unrated',
-        titlePhoto: u.titlePhoto
-      };
-      state.cfProfile = profile;
-      await chrome.storage.local.set({ cfProfile: profile });
-      renderProfileHud(profile);
+
+    if (data.status === 'OK' && Array.isArray(data.result)) {
+      const updatedMap = new Map();
+      data.result.forEach((u) => {
+        updatedMap.set(u.handle.toLowerCase(), {
+          handle: u.handle,
+          rating: u.rating || 0,
+          maxRating: u.maxRating || 0,
+          rank: u.rank || 'unrated',
+          maxRank: u.maxRank || 'unrated',
+          titlePhoto: u.titlePhoto,
+          avatar: u.avatar
+        });
+      });
+
+      state.trackedUsers = state.trackedUsers.map((user) => {
+        const fresh = updatedMap.get(user.handle.toLowerCase());
+        return fresh ? { ...user, ...fresh } : user;
+      });
+
+      await chrome.storage.local.set({
+        trackedUsers: state.trackedUsers,
+        activeUserHandle: state.activeUserHandle
+      });
+
+      renderMultiUserSection();
     }
   } catch (err) {
-    console.warn('[CodeRadar] Failed to fetch Codeforces profile:', err);
+    console.warn('[CodeRadar] Failed to batch refresh users:', err);
   }
 }
 
-function renderProfileHud(profile) {
+function renderMultiUserSection() {
+  if (state.trackedUsers.length === 0) {
+    elements.userSwitcherStrip.classList.add('hidden');
+    elements.profileHud.classList.add('hidden');
+    elements.profilePrompt.classList.remove('hidden');
+    elements.handleForm.classList.add('hidden');
+    return;
+  }
+
   elements.profilePrompt.classList.add('hidden');
-  elements.handleForm.classList.add('hidden');
+  elements.userSwitcherStrip.classList.remove('hidden');
   elements.profileHud.classList.remove('hidden');
+  elements.handleForm.classList.add('hidden');
 
-  elements.userAvatar.src = profile.titlePhoto && profile.titlePhoto.startsWith('http')
-    ? profile.titlePhoto
-    : 'logo/icon32.png';
-  elements.userHandle.textContent = profile.handle;
-  elements.userRankBadge.textContent = profile.rank;
-  elements.userRating.textContent = profile.rating;
-  elements.userMaxRating.textContent = profile.maxRating;
+  // Ensure active user exists
+  let activeUser = state.trackedUsers.find(
+    (u) => u.handle.toLowerCase() === (state.activeUserHandle || '').toLowerCase()
+  );
+  if (!activeUser) {
+    activeUser = state.trackedUsers[0];
+    state.activeUserHandle = activeUser.handle;
+  }
 
-  const color = CF_RANK_COLORS[profile.rank.toLowerCase()] || '#9ca3af';
+  // 1. Render User Switcher Chips
+  elements.userTabsContainer.innerHTML = '';
+  state.trackedUsers.forEach((u) => {
+    const isActive = u.handle.toLowerCase() === state.activeUserHandle.toLowerCase();
+    const rankColor = CF_RANK_COLORS[(u.rank || 'unrated').toLowerCase()] || '#9ca3af';
+
+    const chip = document.createElement('button');
+    chip.className = `user-tab-chip ${isActive ? 'active' : ''}`;
+    chip.dataset.handle = u.handle;
+    chip.innerHTML = `
+      <span class="user-tab-dot" style="background: ${rankColor};"></span>
+      <span>${escapeHtml(u.handle)}</span>
+    `;
+
+    chip.addEventListener('click', () => {
+      state.activeUserHandle = u.handle;
+      chrome.storage.local.set({ activeUserHandle: state.activeUserHandle });
+      renderMultiUserSection();
+    });
+
+    elements.userTabsContainer.appendChild(chip);
+  });
+
+  // 2. Render Active User Card
+  elements.userHandle.textContent = activeUser.handle;
+  elements.userRankBadge.textContent = activeUser.rank || 'unrated';
+  elements.userRating.textContent = activeUser.rating || 0;
+  elements.userMaxRating.textContent = activeUser.maxRating || 0;
+
+  const color = CF_RANK_COLORS[(activeUser.rank || 'unrated').toLowerCase()] || '#9ca3af';
   elements.userRankBadge.style.backgroundColor = `${color}22`;
   elements.userRankBadge.style.color = color;
   elements.userRankBadge.style.border = `1px solid ${color}44`;
   elements.userRating.style.color = color;
+
+  // 3. Bulletproof Avatar with Fallback
+  renderBulletproofAvatar(activeUser, color);
 }
 
-function renderProfilePrompt(show = true) {
-  elements.profileHud.classList.add('hidden');
-  elements.handleForm.classList.add('hidden');
-  elements.profilePrompt.classList.toggle('hidden', !show);
+/**
+ * Bulletproof Avatar Rendering:
+ * If image is default placeholder (no-avatar.jpg or no-title.jpg) or fails network load,
+ * instantly renders an elegant vector monogram avatar with user's rank color.
+ */
+function renderBulletproofAvatar(user, rankColor) {
+  const container = elements.userAvatarWrap;
+  container.innerHTML = '';
+
+  const initial = (user.handle || '?').substring(0, 2).toUpperCase();
+
+  const isDefaultImage =
+    !user.titlePhoto ||
+    user.titlePhoto.includes('no-title.jpg') ||
+    user.titlePhoto.includes('no-avatar.jpg') ||
+    !user.titlePhoto.startsWith('http');
+
+  if (isDefaultImage) {
+    container.innerHTML = `
+      <div class="monogram-avatar" style="border-color: ${rankColor}; color: ${rankColor};">
+        ${initial}
+      </div>
+    `;
+  } else {
+    const img = document.createElement('img');
+    img.src = user.titlePhoto;
+    img.alt = user.handle;
+    img.className = 'user-avatar-img';
+
+    const mono = document.createElement('div');
+    mono.className = 'monogram-avatar hidden';
+    mono.style.borderColor = rankColor;
+    mono.style.color = rankColor;
+    mono.textContent = initial;
+
+    img.onerror = () => {
+      img.style.display = 'none';
+      mono.classList.remove('hidden');
+    };
+
+    container.appendChild(img);
+    container.appendChild(mono);
+  }
+}
+
+/**
+ * Standings Modal: Ranked List of All Tracked Coders
+ */
+function renderStandingsModal() {
+  const sorted = [...state.trackedUsers].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  elements.standingsList.innerHTML = '';
+
+  if (sorted.length === 0) {
+    elements.standingsList.innerHTML = '<p class="empty-view-desc">No tracked users yet.</p>';
+    return;
+  }
+
+  sorted.forEach((u, idx) => {
+    const color = CF_RANK_COLORS[(u.rank || 'unrated').toLowerCase()] || '#9ca3af';
+    const initial = (u.handle || '?').substring(0, 2).toUpperCase();
+
+    const row = document.createElement('div');
+    row.className = 'standings-row';
+    row.innerHTML = `
+      <span class="standings-rank">#${idx + 1}</span>
+      <div class="standings-avatar-wrap">
+        <div class="standings-mono" style="border-color: ${color}; color: ${color};">
+          ${initial}
+        </div>
+      </div>
+      <div class="standings-info">
+        <span class="standings-handle">${escapeHtml(u.handle)}</span>
+        <span class="standings-tier" style="color: ${color};">${escapeHtml(u.rank || 'unrated')}</span>
+      </div>
+      <div class="standings-rating-box">
+        <span class="standings-rating" style="color: ${color};">${u.rating || 0}</span>
+        <span class="standings-max">Max ${u.maxRating || 0}</span>
+      </div>
+    `;
+
+    elements.standingsList.appendChild(row);
+  });
 }
 
 /**
@@ -285,47 +442,110 @@ function setupEventListeners() {
   elements.refreshBtn.addEventListener('click', async () => {
     elements.refreshIcon.classList.add('spin');
     await fetchContests(true);
-    if (state.settings.cfHandle) refreshCfProfile(state.settings.cfHandle);
+    if (state.trackedUsers.length > 0) refreshAllTrackedUsers();
     setTimeout(() => elements.refreshIcon.classList.remove('spin'), 750);
   });
 
-  // Profile Handle Input Actions
-  elements.addHandleBtn.addEventListener('click', () => {
-    elements.profilePrompt.classList.add('hidden');
+  // Add User Trigger
+  const openAddUserForm = () => {
     elements.handleForm.classList.remove('hidden');
-    elements.handleInput.value = state.settings.cfHandle || '';
+    elements.handleInput.value = '';
     elements.handleInput.focus();
-  });
+  };
+
+  elements.addUserBtn.addEventListener('click', openAddUserForm);
+  elements.addFirstHandleBtn.addEventListener('click', openAddUserForm);
 
   elements.cancelHandleBtn.addEventListener('click', () => {
     elements.handleForm.classList.add('hidden');
-    if (state.cfProfile) elements.profileHud.classList.remove('hidden');
-    else elements.profilePrompt.classList.remove('hidden');
   });
 
-  elements.editHandleBtn.addEventListener('click', () => {
-    elements.profileHud.classList.add('hidden');
-    elements.handleForm.classList.remove('hidden');
-    elements.handleInput.value = state.settings.cfHandle || '';
-    elements.handleInput.focus();
-  });
-
+  // Save Handle Button
   elements.saveHandleBtn.addEventListener('click', async () => {
     const handle = elements.handleInput.value.trim();
-    state.settings.cfHandle = handle;
-    await chrome.storage.local.set({ settings: state.settings });
-    if (handle) {
-      await refreshCfProfile(handle);
-    } else {
-      state.cfProfile = null;
-      await chrome.storage.local.remove('cfProfile');
-      renderProfilePrompt(true);
+    if (!handle) return;
+
+    elements.saveHandleBtn.textContent = 'Adding...';
+    try {
+      const res = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(handle)}`);
+      const data = await res.json();
+
+      if (data.status === 'OK' && Array.isArray(data.result) && data.result.length > 0) {
+        const u = data.result[0];
+        const newProfile = {
+          handle: u.handle,
+          rating: u.rating || 0,
+          maxRating: u.maxRating || 0,
+          rank: u.rank || 'unrated',
+          maxRank: u.maxRank || 'unrated',
+          titlePhoto: u.titlePhoto,
+          avatar: u.avatar
+        };
+
+        // If user already in list, update them; else add
+        const existingIdx = state.trackedUsers.findIndex(
+          (user) => user.handle.toLowerCase() === u.handle.toLowerCase()
+        );
+        if (existingIdx >= 0) {
+          state.trackedUsers[existingIdx] = newProfile;
+        } else {
+          state.trackedUsers.push(newProfile);
+        }
+
+        state.activeUserHandle = u.handle;
+        await chrome.storage.local.set({
+          trackedUsers: state.trackedUsers,
+          activeUserHandle: state.activeUserHandle
+        });
+
+        elements.handleForm.classList.add('hidden');
+        renderMultiUserSection();
+      } else {
+        alert(`Could not find Codeforces user "${handle}". Please check the spelling.`);
+      }
+    } catch (err) {
+      alert(`Network error fetching user "${handle}".`);
+    } finally {
+      elements.saveHandleBtn.textContent = 'Add User';
     }
   });
 
   elements.handleInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') elements.saveHandleBtn.click();
     else if (e.key === 'Escape') elements.cancelHandleBtn.click();
+  });
+
+  // Remove Active User
+  elements.removeUserBtn.addEventListener('click', async () => {
+    if (!state.activeUserHandle) return;
+    const confirmRemove = confirm(`Remove "${state.activeUserHandle}" from tracked users?`);
+    if (!confirmRemove) return;
+
+    state.trackedUsers = state.trackedUsers.filter(
+      (u) => u.handle.toLowerCase() !== state.activeUserHandle.toLowerCase()
+    );
+    state.activeUserHandle = state.trackedUsers.length > 0 ? state.trackedUsers[0].handle : '';
+
+    await chrome.storage.local.set({
+      trackedUsers: state.trackedUsers,
+      activeUserHandle: state.activeUserHandle
+    });
+
+    renderMultiUserSection();
+  });
+
+  // Standings Button
+  elements.standingsBtn.addEventListener('click', () => {
+    renderStandingsModal();
+    elements.standingsModal.classList.remove('hidden');
+  });
+
+  elements.closeStandingsBtn.addEventListener('click', () => {
+    elements.standingsModal.classList.add('hidden');
+  });
+
+  elements.standingsModal.addEventListener('click', (e) => {
+    if (e.target === elements.standingsModal) elements.standingsModal.classList.add('hidden');
   });
 
   // Settings Dialog
@@ -420,10 +640,8 @@ function hideCalendarPopover() {
  */
 function setupKeyboardShortcuts() {
   window.addEventListener('keydown', (e) => {
-    // If typing in search or input form, don't hijack unless it's Esc or Enter
     const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT';
 
-    // Global: Ctrl+K or / focuses search
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       elements.searchInput.focus();
@@ -437,10 +655,13 @@ function setupKeyboardShortcuts() {
       return;
     }
 
-    // Esc closes popovers / modals or clears search
     if (e.key === 'Escape') {
       if (!elements.settingsModal.classList.contains('hidden')) {
         elements.settingsModal.classList.add('hidden');
+        return;
+      }
+      if (!elements.standingsModal.classList.contains('hidden')) {
+        elements.standingsModal.classList.add('hidden');
         return;
       }
       if (!elements.calendarPopover.classList.contains('hidden')) {
@@ -453,9 +674,8 @@ function setupKeyboardShortcuts() {
       }
     }
 
-    if (inInput) return; // Don't trigger letter shortcuts when typing
+    if (inInput) return;
 
-    // Number keys 1-5 switch tabs
     if (['1', '2', '3', '4', '5'].includes(e.key)) {
       const idx = parseInt(e.key, 10) - 1;
       if (elements.tabItems[idx]) {
@@ -464,13 +684,11 @@ function setupKeyboardShortcuts() {
       return;
     }
 
-    // 'R' refreshes
     if (e.key.toLowerCase() === 'r') {
       elements.refreshBtn.click();
       return;
     }
 
-    // Arrow navigation for contest cards
     const cards = document.querySelectorAll('.contest-card');
     if (cards.length === 0) return;
 
@@ -644,22 +862,18 @@ function getFilteredContests() {
   const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   return state.contests.filter((contest) => {
-    // Platform
     if (state.selectedPlatforms.length > 0 && !state.selectedPlatforms.includes(contest.resource)) {
       return false;
     }
 
-    // Duration Setting (> 24 hours)
     if (state.settings.hideLongContests && contest.duration > 86400) {
       return false;
     }
 
-    // Duration Quick Pill Filter
     if (state.activeDurFilter === 'short' && contest.duration > 7200) return false;
     if (state.activeDurFilter === 'medium' && (contest.duration <= 7200 || contest.duration > 10800)) return false;
     if (state.activeDurFilter === 'long' && contest.duration <= 10800) return false;
 
-    // Search query
     if (state.searchQuery) {
       const matchTitle = contest.event.toLowerCase().includes(state.searchQuery);
       const matchResource = contest.resource.toLowerCase().includes(state.searchQuery);
@@ -781,7 +995,6 @@ function createContestCardHtml(contest, index) {
   const hasReminder = Boolean(state.reminders && state.reminders[contest.id]);
   const isSelected = index === state.selectedCardIndex;
 
-  // Status badge
   let statusBadgeHtml = '';
   if (isLive) {
     const timeLeft = formatDuration((end.getTime() - now.getTime()) / 1000);
@@ -797,7 +1010,6 @@ function createContestCardHtml(contest, index) {
     }
   }
 
-  // Time & Date format
   const isToday = start.toDateString() === now.toDateString();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -854,7 +1066,6 @@ function createContestCardHtml(contest, index) {
 
       <div class="card-footer-row">
         <div class="actions-cluster">
-          <!-- Calendar Dropdown Trigger -->
           <button class="btn-utility cal-trigger-btn" data-id="${contest.id}" title="Sync with Google, Outlook or iCal [C]">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -866,7 +1077,6 @@ function createContestCardHtml(contest, index) {
             <span>+ Calendar</span>
           </button>
 
-          <!-- Alert Reminder -->
           <button class="btn-utility reminder-btn ${hasReminder ? 'active-bell' : ''}" data-id="${contest.id}" title="${hasReminder ? 'Cancel Alert' : 'Set 15m Desktop Alert'}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="${hasReminder ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -875,7 +1085,6 @@ function createContestCardHtml(contest, index) {
             <span>${hasReminder ? 'Alert Set' : 'Remind'}</span>
           </button>
 
-          <!-- Star Bookmark -->
           <button class="btn-utility star-btn ${isBookmarked ? 'active-star' : ''}" data-id="${contest.id}" title="${isBookmarked ? 'Remove Star [S]' : 'Star Contest [S]'}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -899,7 +1108,6 @@ function createContestCardHtml(contest, index) {
  * Attach Card Action Listeners
  */
 function attachCardActionListeners() {
-  // Calendar Trigger
   document.querySelectorAll('.cal-trigger-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -909,7 +1117,6 @@ function attachCardActionListeners() {
     });
   });
 
-  // Star
   document.querySelectorAll('.star-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -924,7 +1131,6 @@ function attachCardActionListeners() {
     });
   });
 
-  // Reminder
   document.querySelectorAll('.reminder-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
