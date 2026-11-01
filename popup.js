@@ -79,8 +79,8 @@ const elements = {
   contestList: document.getElementById('contestList'),
   searchInput: document.getElementById('searchInput'),
   clearSearchBtn: document.getElementById('clearSearchBtn'),
+  durationSelect: document.getElementById('durationSelect'),
   tabItems: document.querySelectorAll('.tab-item'),
-  durPills: document.querySelectorAll('.dur-pill'),
   refreshBtn: document.getElementById('refreshBtn'),
   refreshIcon: document.getElementById('refreshIcon'),
   platformChipsContainer: document.getElementById('platformChipsContainer'),
@@ -101,14 +101,17 @@ const elements = {
   countToday: document.getElementById('countToday'),
   countUpcoming: document.getElementById('countUpcoming'),
   countSaved: document.getElementById('countSaved'),
+
   // Profile elements
+  topbarUserPill: document.getElementById('topbarUserPill'),
+  topbarUserText: document.getElementById('topbarUserText'),
+  profileDrawer: document.getElementById('profileDrawer'),
+  closeDrawerBtn: document.getElementById('closeDrawerBtn'),
   userSwitcherStrip: document.getElementById('userSwitcherStrip'),
   userTabsContainer: document.getElementById('userTabsContainer'),
   addUserBtn: document.getElementById('addUserBtn'),
   standingsBtn: document.getElementById('standingsBtn'),
   profileHud: document.getElementById('profileHud'),
-  profilePrompt: document.getElementById('profilePrompt'),
-  addFirstHandleBtn: document.getElementById('addFirstHandleBtn'),
   handleForm: document.getElementById('handleForm'),
   handleInput: document.getElementById('handleInput'),
   saveHandleBtn: document.getElementById('saveHandleBtn'),
@@ -127,17 +130,21 @@ const elements = {
   userRealNameWrap: document.getElementById('userRealNameWrap'),
   userRealName: document.getElementById('userRealName'),
   userProfileLink: document.getElementById('userProfileLink'),
+
   // Standings Dialog
   standingsModal: document.getElementById('standingsModal'),
   closeStandingsBtn: document.getElementById('closeStandingsBtn'),
   standingsList: document.getElementById('standingsList'),
+
   // Calendar popover
   calendarPopover: document.getElementById('calendarPopover'),
   calGoogleBtn: document.getElementById('calGoogleBtn'),
   calOutlookBtn: document.getElementById('calOutlookBtn'),
   calIcsBtn: document.getElementById('calIcsBtn'),
+
   // Theme dots
   accentDots: document.querySelectorAll('.accent-dot'),
+
   // Live Arena Hero Bar
   liveArenaBar: document.getElementById('liveArenaBar'),
   liveArenaTimer: document.getElementById('liveArenaTimer'),
@@ -145,7 +152,7 @@ const elements = {
   liveArenaPlatform: document.getElementById('liveArenaPlatform'),
   liveArenaName: document.getElementById('liveArenaName'),
   liveArenaBtn: document.getElementById('liveArenaBtn'),
-  timezoneText: document.getElementById('timezoneText'),
+
   // Share Coder Card Modal
   shareCardBtn: document.getElementById('shareCardBtn'),
   shareCardModal: document.getElementById('shareCardModal'),
@@ -155,6 +162,7 @@ const elements = {
   btnCopyBadgeMd: document.getElementById('btnCopyBadgeMd'),
   btnCopyStatsText: document.getElementById('btnCopyStatsText'),
   cardActionNotice: document.getElementById('cardActionNotice'),
+
   // Badge Mode
   badgeModeSelect: document.getElementById('badgeModeSelect')
 };
@@ -186,13 +194,12 @@ function detectTimezone() {
     const mins = String(Math.abs(offsetMin) % 60).padStart(2, '0');
     const shortTz = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || 'UTC';
 
-    if (elements.tzDisplay) elements.tzDisplay.textContent = shortTz;
-    if (elements.timezoneText) {
-      elements.timezoneText.textContent = `Times synchronized to: ${tz} (${shortTz} \u2022 UTC${sign}${hours}:${mins})`;
+    if (elements.tzDisplay) {
+      elements.tzDisplay.textContent = `${shortTz} (UTC${sign}${hours}:${mins})`;
+      elements.tzDisplay.title = `Times synchronized to: ${tz} (UTC${sign}${hours}:${mins})`;
     }
   } catch (e) {
     if (elements.tzDisplay) elements.tzDisplay.textContent = 'LOCAL';
-    if (elements.timezoneText) elements.timezoneText.textContent = 'Times synchronized to your local timezone';
   }
 }
 
@@ -439,17 +446,17 @@ async function fetchLeetCodeProfile(username) {
  */
 function renderMultiUserSection() {
   if (state.trackedUsers.length === 0) {
-    elements.userSwitcherStrip.classList.add('hidden');
-    elements.profileHud.classList.add('hidden');
-    elements.profilePrompt.classList.remove('hidden');
-    elements.handleForm.classList.add('hidden');
+    if (elements.topbarUserText) elements.topbarUserText.textContent = '+ Add Profile';
+    if (elements.topbarUserPill) elements.topbarUserPill.classList.remove('has-user');
+    if (elements.userSwitcherStrip) elements.userSwitcherStrip.classList.add('hidden');
+    if (elements.profileHud) elements.profileHud.classList.add('hidden');
+    if (elements.handleForm) elements.handleForm.classList.remove('hidden');
     return;
   }
 
-  elements.profilePrompt.classList.add('hidden');
-  elements.userSwitcherStrip.classList.remove('hidden');
-  elements.profileHud.classList.remove('hidden');
-  elements.handleForm.classList.add('hidden');
+  if (elements.userSwitcherStrip) elements.userSwitcherStrip.classList.remove('hidden');
+  if (elements.profileHud) elements.profileHud.classList.remove('hidden');
+  if (elements.handleForm) elements.handleForm.classList.add('hidden');
 
   let activeUser = state.trackedUsers.find((u) => getUserKey(u) === state.activeUserKey);
   if (!activeUser) {
@@ -460,6 +467,14 @@ function renderMultiUserSection() {
   const platform = activeUser.platform || 'codeforces';
   const isCC = platform === 'codechef';
   const isLC = platform === 'leetcode';
+  const tag = isCC ? 'CC' : isLC ? 'LC' : 'CF';
+
+  if (elements.topbarUserText) {
+    elements.topbarUserText.textContent = `@${activeUser.handle} (${tag} ${activeUser.rating || 0})`;
+  }
+  if (elements.topbarUserPill) {
+    elements.topbarUserPill.classList.add('has-user');
+  }
 
   // 1. Render User Switcher Chips
   elements.userTabsContainer.innerHTML = '';
@@ -959,15 +974,28 @@ function setupEventListeners() {
     renderContests();
   });
 
-  // Duration Filter
-  elements.durPills.forEach((pill) => {
-    pill.addEventListener('click', () => {
-      elements.durPills.forEach((p) => p.classList.remove('active'));
-      pill.classList.add('active');
-      state.activeDurFilter = pill.dataset.dur;
+  // Profile Drawer Toggle
+  if (elements.topbarUserPill) {
+    elements.topbarUserPill.addEventListener('click', () => {
+      elements.profileDrawer.classList.toggle('hidden');
+      elements.topbarUserPill.classList.toggle('active');
+    });
+  }
+
+  if (elements.closeDrawerBtn) {
+    elements.closeDrawerBtn.addEventListener('click', () => {
+      elements.profileDrawer.classList.add('hidden');
+      elements.topbarUserPill.classList.remove('active');
+    });
+  }
+
+  // Duration Filter Dropdown
+  if (elements.durationSelect) {
+    elements.durationSelect.addEventListener('change', () => {
+      state.activeDurFilter = elements.durationSelect.value;
       renderContests();
     });
-  });
+  }
 
   // Tabs
   elements.tabItems.forEach((btn) => {
@@ -1705,23 +1733,17 @@ function createContestCardHtml(contest, index) {
   let statusBadgeHtml = '';
   if (isLive) {
     const timeLeft = formatDuration((end.getTime() - now.getTime()) / 1000);
-    statusBadgeHtml = `<span class="status-pill pill-live"><span class="live-dot-pulse"></span> LIVE • Ends in ${timeLeft}</span>`;
+    statusBadgeHtml = `<span class="status-pill pill-live"><span class="live-dot-pulse"></span> LIVE &bull; ${timeLeft} left</span>`;
   } else if (isEnded) {
-    statusBadgeHtml = `
-      <span class="status-pill" style="background: rgba(148,163,184,0.12); color: #94a3b8; border: 1px solid rgba(148,163,184,0.25);">Ended</span>
-      <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="card-upsolve-link" title="Open problem archive to upsolve">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-        <span>Upsolve</span>
-      </a>
-    `;
+    statusBadgeHtml = `<span class="status-pill pill-ended">Ended</span>`;
   } else {
     const diffSec = (start.getTime() - now.getTime()) / 1000;
     if (diffSec < 86400) {
-      statusBadgeHtml = `<span class="status-pill pill-today">⚡ Starts in ${formatDuration(diffSec)}</span>`;
+      statusBadgeHtml = `<span class="status-pill pill-today">\u26A1 In ${formatDuration(diffSec)}</span>`;
     } else {
       const days = Math.floor(diffSec / 86400);
       const hours = Math.floor((diffSec % 86400) / 3600);
-      statusBadgeHtml = `<span class="status-pill pill-upcoming">🟢 In ${days}d ${hours}h</span>`;
+      statusBadgeHtml = `<span class="status-pill pill-upcoming">\uD83D\uDFE2 In ${days}d ${hours}h</span>`;
     }
   }
 
@@ -1747,73 +1769,52 @@ function createContestCardHtml(contest, index) {
 
   return `
     <article class="contest-card ${isLive ? 'card-live' : ''} ${isSelected ? 'card-selected' : ''}" data-id="${contest.id}" data-index="${index}">
-      <div class="card-header-row">
-        <div class="platform-identity">
-          <img src="${conf.icon}" alt="${conf.name}" class="platform-logo-img" />
-          <span class="platform-name">${conf.name}</span>
+      <div class="card-main-row">
+        <div class="platform-identity" title="${escapeHtml(conf.name)}">
+          <img src="${conf.icon}" alt="" class="platform-logo-img" />
+          <span class="platform-name">${escapeHtml(conf.name)}</span>
         </div>
-        ${statusBadgeHtml}
+        <div class="card-status-badge">
+          ${statusBadgeHtml}
+        </div>
       </div>
 
-      <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="contest-headline">
+      <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="contest-headline" title="${escapeHtml(contest.event)}">
         ${escapeHtml(contest.event)}
       </a>
 
-      <div class="schedule-row">
-        <div class="schedule-item">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          <span><strong>${datePrefix}</strong> at ${timeString}</span>
-        </div>
-
-        <div class="schedule-item">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span>Duration: ${durationString}</span>
-        </div>
-      </div>
-
       <div class="card-footer-row">
-        <div class="actions-cluster">
-          <button class="btn-utility cal-trigger-btn" data-id="${contest.id}" title="Sync with Google, Outlook or iCal [C]">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="12" y1="11" x2="12" y2="17"></line>
-              <line x1="9" y1="14" x2="15" y2="14"></line>
-            </svg>
-            <span>+ Calendar</span>
-          </button>
-
-          <button class="btn-utility reminder-btn ${hasReminder ? 'active-bell' : ''}" data-id="${contest.id}" title="${hasReminder ? 'Cancel Alert' : 'Set 15m Desktop Alert'}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="${hasReminder ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span>${hasReminder ? 'Alert Set' : 'Remind'}</span>
-          </button>
-
-          <button class="btn-utility star-btn ${isBookmarked ? 'active-star' : ''}" data-id="${contest.id}" title="${isBookmarked ? 'Remove Star [S]' : 'Star Contest [S]'}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-          </button>
+        <div class="schedule-info">
+          <span class="sched-date"><strong>${datePrefix}</strong> at ${timeString}</span>
+          <span class="sched-sep">&bull;</span>
+          <span class="sched-dur">⏱️ ${durationString}</span>
         </div>
 
-        <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="link-participate" title="Open contest page [Enter]">
-          <span>Participate</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <line x1="7" y1="17" x2="17" y2="7"></line>
-            <polyline points="7 7 17 7 17 17"></polyline>
-          </svg>
-        </a>
+        <div class="actions-cluster">
+          ${isEnded ? `
+            <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="btn-card-upsolve" title="Open archive / Editorial to practice">Upsolve 📝</a>
+          ` : `
+            <button class="btn-utility cal-trigger-btn" data-id="${contest.id}" title="Add to Google, Outlook or iCal [C]">+ Cal</button>
+            <button class="btn-utility reminder-btn ${hasReminder ? 'active-bell' : ''}" data-id="${contest.id}" title="${hasReminder ? 'Cancel Alert' : 'Set 15m Alert [R]'}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="${hasReminder ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </button>
+            <button class="btn-utility star-btn ${isBookmarked ? 'active-star' : ''}" data-id="${contest.id}" title="${isBookmarked ? 'Remove Star [S]' : 'Star Contest [S]'}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </button>
+            <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="link-participate" title="Open contest page [Enter]">
+              <span>Enter</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <line x1="7" y1="17" x2="17" y2="7"></line>
+                <polyline points="7 7 17 7 17 17"></polyline>
+              </svg>
+            </a>
+          `}
+        </div>
       </div>
     </article>
   `;

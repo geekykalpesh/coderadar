@@ -8,23 +8,48 @@
 </head>
 <body>
   <div class="app">
-    <!-- Top Bar -->
+    <!-- Top Bar: Clean unified brand, user pill trigger, and quick actions -->
     <header class="topbar">
       <div class="brand">
         <img src="logo/icon32.png" alt="CodeRadar" class="brand-logo" />
-        <div class="brand-info">
-          <h1 class="brand-title">CodeRadar</h1>
-          <span class="brand-subtitle">Contest Radar & Tracker</span>
-        </div>
+        <h1 class="brand-title">CodeRadar</h1>
       </div>
+
+      <div class="topbar-center">
+        <!-- Interactive User Pill: Click to open/close profile drawer -->
+        <button id="topbarUserPill" class="topbar-user-pill" title="View & Track Coder Profiles">
+          <span class="user-pill-dot"></span>
+          <span id="topbarUserText" class="user-pill-text">+ Add Profile</span>
+          <svg class="chevron-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+
       <div class="topbar-actions">
+        <button id="standingsBtn" class="action-icon-btn" title="Standings Leaderboard" aria-label="Standings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 20V10"></path>
+            <path d="M12 20V4"></path>
+            <path d="M6 20v-6"></path>
+          </svg>
+        </button>
+        <button id="shareCardBtn" class="action-icon-btn" title="Export & Share Coder Card" aria-label="Share Card">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </button>
         <button id="refreshBtn" class="action-icon-btn" title="Refresh contests (R)" aria-label="Refresh">
-          <svg id="refreshIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg id="refreshIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
           </svg>
         </button>
-        <button id="settingsBtn" class="action-icon-btn" title="Settings & Preferences (,)" aria-label="Settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <button id="settingsBtn" class="action-icon-btn" title="Settings & Customization (,)" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
@@ -32,45 +57,19 @@
       </div>
     </header>
 
-    <!-- Multi-User / Multi-Platform HUD Section (CF + CC + LC) -->
-    <div id="profileSection" class="profile-section">
-      <!-- User Switcher Strip -->
-      <div id="userSwitcherStrip" class="user-switcher-strip">
-        <div id="userTabsContainer" class="user-tabs-container">
-          <!-- Rendered dynamically -->
-        </div>
-        <div class="user-strip-actions">
-          <button id="addUserBtn" class="btn-user-action" title="Add user (Codeforces, CodeChef, or LeetCode)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span>Add User</span>
-          </button>
-          <button id="standingsBtn" class="btn-user-action icon-only" title="View Standings Leaderboard">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 20V10"></path>
-              <path d="M12 20V4"></path>
-              <path d="M6 20v-6"></path>
-            </svg>
-          </button>
-          <button id="shareCardBtn" class="btn-user-action icon-only" title="Export & Share Coder Card">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-          </button>
-        </div>
+    <!-- Collapsible Profile Drawer: Slides open on demand, hidden by default -->
+    <div id="profileDrawer" class="profile-drawer hidden">
+      <div class="drawer-header">
+        <span class="drawer-title">Tracked Profiles</span>
+        <button id="closeDrawerBtn" class="drawer-close">&times;</button>
       </div>
-
+      <div id="userSwitcherStrip" class="user-switcher-strip">
+        <div id="userTabsContainer" class="user-tabs-container"></div>
+        <button id="addUserBtn" class="btn-user-action" title="Add another account">+ Add</button>
+      </div>
       <!-- Active User Card -->
       <div id="profileHud" class="profile-card">
-        <div id="userAvatarWrap" class="user-avatar-wrap">
-          <!-- Monogram or Image -->
-        </div>
+        <div id="userAvatarWrap" class="user-avatar-wrap"></div>
         <div class="user-meta">
           <div class="user-row-primary">
             <span id="userPlatformBadge" class="user-platform-pill">CF</span>
@@ -95,22 +94,14 @@
         </div>
         <div class="user-card-actions">
           <a id="userProfileLink" href="#" target="_blank" rel="noopener" class="btn-ghost-icon" title="View official profile">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-              <polyline points="15 3 21 3 21 9"></polyline>
-              <line x1="10" y1="14" x2="21" y2="3"></line>
-            </svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
           </a>
           <button id="removeUserBtn" class="btn-ghost-icon" title="Remove this user">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           </button>
         </div>
       </div>
-
-      <!-- Add User Inline Form (Collapsible) -->
+      <!-- Add User Inline Form -->
       <div id="handleForm" class="handle-form hidden">
         <div class="form-platform-selector">
           <button type="button" class="platform-choice-btn active" data-platform="codeforces">Codeforces</button>
@@ -123,78 +114,42 @@
           <button id="cancelHandleBtn" class="btn-cancel-handle">&times;</button>
         </div>
       </div>
-
-      <!-- Empty State: When no users added yet -->
-      <div id="profilePrompt" class="profile-prompt hidden">
-        <button id="addFirstHandleBtn" class="add-handle-pill">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <span>Track Codeforces, CodeChef & LeetCode ratings</span>
-          <span class="plus-tag">+</span>
-        </button>
-      </div>
     </div>
 
-    <!-- Search Box with Shortcut Badge -->
-    <div class="search-container">
+    <!-- Live Arena Bar (Compact 32px Hero Ticker when contest is live) -->
+    <div id="liveArenaBar" class="live-arena-bar hidden">
+      <span class="live-radar-dot"></span>
+      <span class="live-arena-badge">LIVE ARENA</span>
+      <img id="liveArenaIcon" class="live-arena-plat-icon" src="images/codeforces.svg" alt="" />
+      <span id="liveArenaPlatform" class="live-arena-plat-name">CF</span>
+      <span id="liveArenaName" class="live-arena-contest-title">Active Contest</span>
+      <span id="liveArenaTimer" class="live-arena-timer">00:00:00 remaining</span>
+      <a id="liveArenaBtn" class="live-arena-enter-btn" href="#" target="_blank" rel="noopener">Enter Round ↗</a>
+    </div>
+
+    <!-- Command Row: Unified Search (Left) + Duration Filter Dropdown (Right) -->
+    <div class="command-row">
       <div class="search-box">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input type="text" id="searchInput" placeholder="Search rounds, divisions, or platforms..." autocomplete="off" spellcheck="false" />
-        <span class="kbd-shortcut" title="Press Ctrl+K or / to search">Ctrl K</span>
+        <input type="text" id="searchInput" placeholder="Search rounds or platforms... (Ctrl+K)" autocomplete="off" spellcheck="false" />
+        <span class="kbd-hint">Ctrl K</span>
         <button id="clearSearchBtn" class="search-clear-btn" title="Clear search" style="display: none;">&times;</button>
       </div>
-    </div>
-
-    <!-- Duration Filter Pills -->
-    <div class="duration-filter-bar">
-      <button class="dur-pill active" data-dur="all">All Lengths</button>
-      <button class="dur-pill" data-dur="short">&lt; 2h (Speed)</button>
-      <button class="dur-pill" data-dur="medium">2h - 3h (Standard)</button>
-      <button class="dur-pill" data-dur="long">&gt; 3h</button>
-    </div>
-
-    <!-- Timezone Sync Micro-Indicator -->
-    <div class="timezone-bar">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
-      <span id="timezoneText">Times synchronized to local time</span>
-    </div>
-
-    <!-- Live Arena Bar (Highlights Active Running Contest with Live Countdown) -->
-    <div id="liveArenaBar" class="live-arena-bar hidden">
-      <div class="live-arena-top">
-        <div class="live-badge-glow">
-          <span class="live-radar-dot"></span>
-          <span>LIVE ARENA</span>
-        </div>
-        <span id="liveArenaTimer" class="live-arena-timer">00:00:00 remaining</span>
-      </div>
-      <div class="live-arena-row">
-        <div class="live-arena-details">
-          <img id="liveArenaIcon" class="live-arena-plat-icon" src="images/codeforces.svg" alt="Platform" />
-          <div class="live-arena-text">
-            <span id="liveArenaPlatform" class="live-arena-plat-name">Codeforces</span>
-            <span id="liveArenaName" class="live-arena-contest-title">Active Contest</span>
-          </div>
-        </div>
-        <a id="liveArenaBtn" class="live-arena-enter-btn" href="#" target="_blank" rel="noopener">
-          <span>Enter Round</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M7 17l9.2-9.2M17 17V7H7"/>
-          </svg>
-        </a>
+      <div class="duration-select-box">
+        <select id="durationSelect" class="duration-select" title="Filter contest duration">
+          <option value="all" selected>⏱️ All Lengths</option>
+          <option value="short">⏱️ &lt; 2h (Speed)</option>
+          <option value="medium">⏱️ 2h - 3h (Standard)</option>
+          <option value="long">⏱️ &gt; 3h</option>
+        </select>
       </div>
     </div>
 
-    <!-- Segmented Navigation Tabs -->
-    <div class="tabs-container">
+    <!-- Filter Toolbar: Segmented Tabs (Top) + Platform Chips (Bottom) -->
+    <div class="filter-toolbar">
       <div class="segmented-control" role="tablist">
         <button class="tab-item active" data-tab="all" title="Shortcut: Press 1">
           <span>All</span>
@@ -214,21 +169,21 @@
           <span class="tab-pill" id="countUpcoming">0</span>
         </button>
         <button class="tab-item" data-tab="saved" title="Shortcut: Press 5">
-          <span>Starred</span>
+          <span>★ Starred</span>
           <span class="tab-pill" id="countSaved">0</span>
         </button>
       </div>
-    </div>
 
-    <!-- Platform Filter Strip -->
-    <div class="platform-strip-wrapper">
-      <div class="platform-strip" id="platformChipsContainer">
-        <!-- Rendered dynamically -->
+      <div class="platform-strip-wrapper">
+        <div id="platformChipsContainer" class="platform-strip">
+          <!-- Rendered dynamically -->
+        </div>
       </div>
     </div>
 
-    <!-- Contest Feed List -->
-    <main class="feed-container" id="contestList">
+    <!-- Contest Feed List: Takes 430px+ of vertical space for maximum visibility! -->
+    <main class="feed-container" id="contestList" tabindex="0">
+      <div class="skeleton-item"></div>
       <div class="skeleton-item"></div>
       <div class="skeleton-item"></div>
       <div class="skeleton-item"></div>
@@ -241,7 +196,7 @@
         <span id="syncStatus" class="status-text">Ready</span>
       </div>
       <div class="status-right">
-        <span id="tzDisplay" class="tz-pill">UTC</span>
+        <span id="tzDisplay" class="tz-pill" title="Local Timezone">GMT+5:30</span>
         <span id="contestCountDisplay" class="count-text">0 contests</span>
       </div>
     </footer>
