@@ -206,34 +206,72 @@ async function syncContestData() {
 /**
  * Update the extension icon badge
  */
-function updateBadge(contests) {
-  const now = new Date();
-  const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+async function updateBadge(contests) {
+  try {
+    const data = await chrome.storage.local.get(['settings', 'trackedUsers', 'activeUserKey', 'contests']);
+    const settings = data.settings || {};
+    const badgeMode = settings.badgeMode || 'contests';
+    const contestList = Array.isArray(contests) && contests.length > 0 ? contests : (data.contests || []);
 
-  let liveCount = 0;
-  let todayCount = 0;
-
-  for (const c of contests) {
-    const start = new Date(c.start.endsWith('Z') ? c.start : c.start + '.000Z');
-    const end = new Date(c.end.endsWith('Z') ? c.end : c.end + '.000Z');
-
-    if (start <= now && end >= now) {
-      liveCount++;
-    } else if (start > now && start <= next24h) {
-      todayCount++;
+    if (badgeMode === 'none') {
+      chrome.action.setBadgeText({ text: '' });
+      chrome.action.setTitle({ title: 'CodeRadar - Coding Contests Tracker' });
+      return;
     }
-  }
 
-  if (liveCount > 0) {
-    chrome.action.setBadgeText({ text: `${liveCount}` });
-    chrome.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red for live
-    chrome.action.setTitle({ title: `CodeRadar: ${liveCount} contest(s) LIVE NOW!` });
-  } else if (todayCount > 0) {
-    chrome.action.setBadgeText({ text: `${todayCount}` });
-    chrome.action.setBadgeBackgroundColor({ color: '#38BDF8' }); // Cyan for today
-    chrome.action.setTitle({ title: `CodeRadar: ${todayCount} contest(s) in next 24 hours` });
-  } else {
-    chrome.action.setBadgeText({ text: '' });
-    chrome.action.setTitle({ title: 'CodeRadar - Coding Contests Tracker' });
+    if (badgeMode === 'rating') {
+      const users = data.trackedUsers || [];
+      const active = users.find(u => `${u.platform || 'codeforces'}:${(u.handle || '').toLowerCase()}` === data.activeUserKey) || users[0];
+      if (active && active.rating) {
+        const text = active.rating > 9999 ? `${Math.round(active.rating / 1000)}k` : `${active.rating}`;
+        chrome.action.setBadgeText({ text });
+        chrome.action.setBadgeBackgroundColor({ color: '#6366F1' });
+        chrome.action.setTitle({ title: `CodeRadar: ${active.handle} (${active.platform}) Rating ${active.rating}` });
+        return;
+      }
+    }
+
+    const now = new Date();
+    const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    let liveCount = 0;
+    let todayCount = 0;
+
+    for (const c of contestList) {
+      const start = new Date(c.start.endsWith('Z') ? c.start : c.start + '.000Z');
+      const end = new Date(c.end.endsWith('Z') ? c.end : c.end + '.000Z');
+
+      if (start <= now && end >= now) {
+        liveCount++;
+      } else if (start > now && start <= next24h) {
+        todayCount++;
+      }
+    }
+
+    if (liveCount > 0) {
+      chrome.action.setBadgeText({ text: liveCount > 1 ? `${liveCount}` : 'LIVE' });
+      chrome.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red for live
+      chrome.action.setTitle({ title: `CodeRadar: ${liveCount} contest(s) LIVE NOW!` });
+    } else if (badgeMode === 'live_only') {
+      chrome.action.setBadgeText({ text: '' });
+      chrome.action.setTitle({ title: 'CodeRadar - Coding Contests Tracker' });
+    } else if (todayCount > 0) {
+      chrome.action.setBadgeText({ text: `${todayCount}` });
+      chrome.action.setBadgeBackgroundColor({ color: '#38BDF8' }); // Cyan for today
+      chrome.action.setTitle({ title: `CodeRadar: ${todayCount} contest(s) in next 24 hours` });
+    } else {
+      chrome.action.setBadgeText({ text: '' });
+      chrome.action.setTitle({ title: 'CodeRadar - Coding Contests Tracker' });
+    }
+  } catch (e) {
+    console.warn('[CodeRadar] Error updating badge:', e);
   }
 }
+
+// Listen for messages from popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message && message.type === 'UPDATE_BADGE') {
+    updateBadge();
+    sendResponse({ ok: true });
+  }
+});

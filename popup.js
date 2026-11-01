@@ -137,7 +137,26 @@ const elements = {
   calOutlookBtn: document.getElementById('calOutlookBtn'),
   calIcsBtn: document.getElementById('calIcsBtn'),
   // Theme dots
-  accentDots: document.querySelectorAll('.accent-dot')
+  accentDots: document.querySelectorAll('.accent-dot'),
+  // Live Arena Hero Bar
+  liveArenaBar: document.getElementById('liveArenaBar'),
+  liveArenaTimer: document.getElementById('liveArenaTimer'),
+  liveArenaIcon: document.getElementById('liveArenaIcon'),
+  liveArenaPlatform: document.getElementById('liveArenaPlatform'),
+  liveArenaName: document.getElementById('liveArenaName'),
+  liveArenaBtn: document.getElementById('liveArenaBtn'),
+  timezoneText: document.getElementById('timezoneText'),
+  // Share Coder Card Modal
+  shareCardBtn: document.getElementById('shareCardBtn'),
+  shareCardModal: document.getElementById('shareCardModal'),
+  closeShareCardBtn: document.getElementById('closeShareCardBtn'),
+  cardVisualPreview: document.getElementById('cardVisualPreview'),
+  btnDownloadCardPng: document.getElementById('btnDownloadCardPng'),
+  btnCopyBadgeMd: document.getElementById('btnCopyBadgeMd'),
+  btnCopyStatsText: document.getElementById('btnCopyStatsText'),
+  cardActionNotice: document.getElementById('cardActionNotice'),
+  // Badge Mode
+  badgeModeSelect: document.getElementById('badgeModeSelect')
 };
 
 // Bootstrap App
@@ -160,10 +179,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function detectTimezone() {
   try {
-    const shortTz = new Date().toLocaleTimeString('en-us', { timeZoneName: 'short' }).split(' ')[2] || 'UTC';
-    elements.tzDisplay.textContent = shortTz;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local';
+    const offsetMin = -new Date().getTimezoneOffset();
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const hours = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0');
+    const mins = String(Math.abs(offsetMin) % 60).padStart(2, '0');
+    const shortTz = new Date().toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() || 'UTC';
+
+    if (elements.tzDisplay) elements.tzDisplay.textContent = shortTz;
+    if (elements.timezoneText) {
+      elements.timezoneText.textContent = `Times synchronized to: ${tz} (${shortTz} \u2022 UTC${sign}${hours}:${mins})`;
+    }
   } catch (e) {
-    elements.tzDisplay.textContent = 'LOCAL';
+    if (elements.tzDisplay) elements.tzDisplay.textContent = 'LOCAL';
+    if (elements.timezoneText) elements.timezoneText.textContent = 'Times synchronized to your local timezone';
   }
 }
 
@@ -197,6 +226,9 @@ async function loadStoredData() {
       }
       if (data.settings.reminders) {
         state.reminders = data.settings.reminders;
+      }
+      if (elements.badgeModeSelect) {
+        elements.badgeModeSelect.value = state.settings.badgeMode || 'contests';
       }
     }
 
@@ -593,6 +625,321 @@ function renderStandingsModal() {
 }
 
 /**
+ * Coder Identity Card Generation & Sharing
+ */
+function getCoderStatsSummary() {
+  const active = state.trackedUsers.find((u) => getUserKey(u) === state.activeUserKey) || state.trackedUsers[0];
+  if (!active) return null;
+
+  const cfUser = state.trackedUsers.find((u) => (u.platform || 'codeforces') === 'codeforces');
+  const ccUser = state.trackedUsers.find((u) => u.platform === 'codechef');
+  const lcUser = state.trackedUsers.find((u) => u.platform === 'leetcode');
+
+  return { active, cfUser, ccUser, lcUser };
+}
+
+function openShareCardModal() {
+  const data = getCoderStatsSummary();
+  if (!data) {
+    alert('Please add at least one username first to generate your Coder Identity Card!');
+    return;
+  }
+
+  const { active, cfUser, ccUser, lcUser } = data;
+  const rankColor = getRankColor(active);
+  const initials = (active.handle || '?').substring(0, 2).toUpperCase();
+
+  const previewEl = elements.cardVisualPreview;
+  previewEl.innerHTML = `
+    <div class="card-inner-header">
+      <div class="card-watermark">
+        <img src="logo/icon16.png" alt="" />
+        <span>CodeRadar Identity</span>
+      </div>
+      <div class="card-tier-badge" style="color: ${rankColor}; border-color: ${rankColor}55; background: ${rankColor}15;">
+        ${escapeHtml(active.rank || 'Unrated')}
+      </div>
+    </div>
+    <div class="card-user-strip">
+      <div class="card-monogram" style="color: ${rankColor}; border-color: ${rankColor};">
+        ${initials}
+      </div>
+      <div class="card-user-info">
+        <span class="card-handle">@${escapeHtml(active.handle)}</span>
+        <span class="card-realname">${escapeHtml(active.realName || 'Competitive Programmer')}</span>
+      </div>
+    </div>
+    <div class="card-stats-grid">
+      <div class="card-stat-box">
+        <div class="card-stat-header">
+          <span>CODEFORCES</span>
+          <span style="color: #60a5fa;">CF</span>
+        </div>
+        <span class="card-stat-val" style="color: #60a5fa;">${cfUser ? (cfUser.rating || 0) : '—'}</span>
+        <span class="card-stat-sub">${cfUser ? (cfUser.rank || 'Unrated') : 'Not linked'}</span>
+      </div>
+      <div class="card-stat-box">
+        <div class="card-stat-header">
+          <span>CODECHEF</span>
+          <span style="color: #fbbf24;">CC</span>
+        </div>
+        <span class="card-stat-val" style="color: #fbbf24;">${ccUser ? (ccUser.rating || 0) : '—'}</span>
+        <span class="card-stat-sub">${ccUser ? (ccUser.rank || '1★') : 'Not linked'}</span>
+      </div>
+      <div class="card-stat-box">
+        <div class="card-stat-header">
+          <span>LEETCODE</span>
+          <span style="color: #fb923c;">LC</span>
+        </div>
+        <span class="card-stat-val" style="color: #fb923c;">${lcUser ? (lcUser.rating || 0) : '—'}</span>
+        <span class="card-stat-sub">${lcUser ? (lcUser.totalSolved !== undefined ? `${lcUser.totalSolved} solved` : lcUser.rank) : 'Not linked'}</span>
+      </div>
+    </div>
+  `;
+
+  elements.cardActionNotice.classList.add('hidden');
+  elements.shareCardModal.classList.remove('hidden');
+}
+
+function showCardNotice(msg) {
+  elements.cardActionNotice.textContent = msg;
+  elements.cardActionNotice.classList.remove('hidden');
+  setTimeout(() => {
+    elements.cardActionNotice.classList.add('hidden');
+  }, 2200);
+}
+
+function copyCardBadgesMarkdown() {
+  const data = getCoderStatsSummary();
+  if (!data) return;
+  const { cfUser, ccUser, lcUser } = data;
+
+  let md = '### ⚡ Competitive Programming Stats\n';
+  if (cfUser) {
+    const r = cfUser.rating || 0;
+    const rank = encodeURIComponent(cfUser.rank || 'newbie');
+    md += `[![Codeforces](https://img.shields.io/badge/Codeforces-${rank}%20${r}-blue?style=for-the-badge&logo=codeforces)](https://codeforces.com/profile/${encodeURIComponent(cfUser.handle)})\n`;
+  }
+  if (lcUser) {
+    const r = lcUser.rating || 0;
+    const solved = lcUser.totalSolved ? `%20(${lcUser.totalSolved}%20Solved)` : '';
+    md += `[![LeetCode](https://img.shields.io/badge/LeetCode-Rating%20${r}${solved}-orange?style=for-the-badge&logo=leetcode)](https://leetcode.com/u/${encodeURIComponent(lcUser.handle)})\n`;
+  }
+  if (ccUser) {
+    const r = ccUser.rating || 0;
+    const stars = encodeURIComponent(ccUser.rank || '1★');
+    md += `[![CodeChef](https://img.shields.io/badge/CodeChef-${stars}%20${r}-yellow?style=for-the-badge&logo=codechef)](https://www.codechef.com/users/${encodeURIComponent(ccUser.handle)})\n`;
+  }
+  md += '\n*Powered by [CodeRadar](https://github.com/karanarjunjr/cp-calendar)*';
+
+  navigator.clipboard.writeText(md).then(() => {
+    showCardNotice('✓ GitHub Markdown copied to clipboard!');
+  });
+}
+
+function copyCardStatsText() {
+  const data = getCoderStatsSummary();
+  if (!data) return;
+  const { active, cfUser, ccUser, lcUser } = data;
+
+  let txt = `⚡ CodeRadar Developer Identity: @${active.handle}\n`;
+  if (active.realName) txt += `Name: ${active.realName}\n`;
+  if (cfUser) txt += `• Codeforces: ${cfUser.rating || 0} (${cfUser.rank || 'Unrated'})\n`;
+  if (ccUser) txt += `• CodeChef: ${ccUser.rating || 0} (${ccUser.rank || '1★'})\n`;
+  if (lcUser) txt += `• LeetCode: ${lcUser.rating || 0} (${lcUser.rank || 'Contestant'}${lcUser.totalSolved ? `, ${lcUser.totalSolved} solved` : ''})\n`;
+  txt += '— Verified with CodeRadar';
+
+  navigator.clipboard.writeText(txt).then(() => {
+    showCardNotice('✓ Stats summary copied to clipboard!');
+  });
+}
+
+function exportCoderCardPng() {
+  const data = getCoderStatsSummary();
+  if (!data) return;
+  const { active, cfUser, ccUser, lcUser } = data;
+
+  const width = 1200;
+  const height = 630;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  // Background Gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+  bgGrad.addColorStop(0, '#090d16');
+  bgGrad.addColorStop(0.5, '#0e1422');
+  bgGrad.addColorStop(1, '#080a10');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  // Subtle Tech Grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < width; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y < height; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  // Accent Glow Ellipse
+  const accentColor = getRankColor(active);
+  const radGrad = ctx.createRadialGradient(width - 150, 150, 10, width - 150, 150, 300);
+  radGrad.addColorStop(0, `${accentColor}33`);
+  radGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = radGrad;
+  ctx.beginPath();
+  ctx.arc(width - 150, 150, 300, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer Border Box
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(40, 40, width - 80, height - 80);
+
+  // Top Watermark & Verified Badge
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText('⚡ CODERADAR • VERIFIED CODER ID', 80, 100);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText(new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }), width - 220, 100);
+
+  // Avatar Circle
+  const avatarX = 140;
+  const avatarY = 230;
+  const avatarR = 55;
+
+  ctx.beginPath();
+  ctx.arc(avatarX, avatarY, avatarR, 0, Math.PI * 2);
+  ctx.fillStyle = '#161c28';
+  ctx.fill();
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Monogram text in avatar
+  const initials = (active.handle || '?').substring(0, 2).toUpperCase();
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(initials, avatarX, avatarY);
+
+  // Reset text alignment
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  // Handle & Real Name
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 42px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText(`@${active.handle}`, 225, 220);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText(active.realName || 'Competitive Programming Athlete', 225, 260);
+
+  // Active Rank Badge
+  ctx.fillStyle = `${accentColor}25`;
+  ctx.fillRect(width - 320, 190, 240, 50);
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(width - 320, 190, 240, 50);
+
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText((active.rank || 'Unrated').toUpperCase(), width - 200, 222);
+  ctx.textAlign = 'left';
+
+  // Platform Cards Grid (3 cards at bottom)
+  const cardY = 340;
+  const cardW = 320;
+  const cardH = 170;
+  const gap = 30;
+  const startX = 80;
+
+  const platforms = [
+    {
+      title: 'CODEFORCES',
+      code: 'CF',
+      color: '#60a5fa',
+      val: cfUser ? `${cfUser.rating || 0}` : '—',
+      sub: cfUser ? `Max ${cfUser.maxRating || 0} • ${cfUser.rank || 'Unrated'}` : 'Not linked'
+    },
+    {
+      title: 'CODECHEF',
+      code: 'CC',
+      color: '#fbbf24',
+      val: ccUser ? `${ccUser.rating || 0}` : '—',
+      sub: ccUser ? `Max ${ccUser.maxRating || 0} • ${ccUser.rank || '1★'}` : 'Not linked'
+    },
+    {
+      title: 'LEETCODE',
+      code: 'LC',
+      color: '#fb923c',
+      val: lcUser ? `${lcUser.rating || 0}` : '—',
+      sub: lcUser ? `${lcUser.totalSolved ? `${lcUser.totalSolved} Solved • ` : ''}${lcUser.rank || 'Contestant'}` : 'Not linked'
+    }
+  ];
+
+  platforms.forEach((p, idx) => {
+    const px = startX + idx * (cardW + gap);
+
+    // Box Background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.fillRect(px, cardY, cardW, cardH);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(px, cardY, cardW, cardH);
+
+    // Header
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(p.title, px + 20, cardY + 36);
+
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(p.code, px + cardW - 20, cardY + 36);
+    ctx.textAlign = 'left';
+
+    // Rating Value
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(p.val, px + 20, cardY + 95);
+
+    // Subtitle
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(p.sub, px + 20, cardY + 135);
+  });
+
+  // Footer Tagline
+  ctx.fillStyle = '#64748b';
+  ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillText('Generated by CodeRadar • Chrome Web Store', 80, height - 55);
+
+  // Trigger Download
+  const link = document.createElement('a');
+  link.download = `coderadar-${active.handle}-card.png`;
+  link.href = canvas.toDataURL('image/png');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showCardNotice('✓ High-res PNG card downloaded!');
+}
+
+/**
  * Setup Event Listeners
  */
 function setupEventListeners() {
@@ -820,6 +1167,31 @@ function setupEventListeners() {
     if (e.target === elements.standingsModal) elements.standingsModal.classList.add('hidden');
   });
 
+  // Share Coder Card Modal & Actions
+  elements.shareCardBtn.addEventListener('click', () => {
+    openShareCardModal();
+  });
+
+  elements.closeShareCardBtn.addEventListener('click', () => {
+    elements.shareCardModal.classList.add('hidden');
+  });
+
+  elements.shareCardModal.addEventListener('click', (e) => {
+    if (e.target === elements.shareCardModal) elements.shareCardModal.classList.add('hidden');
+  });
+
+  elements.btnDownloadCardPng.addEventListener('click', () => {
+    exportCoderCardPng();
+  });
+
+  elements.btnCopyBadgeMd.addEventListener('click', () => {
+    copyCardBadgesMarkdown();
+  });
+
+  elements.btnCopyStatsText.addEventListener('click', () => {
+    copyCardStatsText();
+  });
+
   // Settings Dialog
   elements.settingsBtn.addEventListener('click', () => {
     elements.reminderOffsetSelect.value = state.settings.reminderMinutes || 15;
@@ -827,6 +1199,9 @@ function setupEventListeners() {
     elements.hideLongContestsSwitch.checked = state.settings.hideLongContests !== false;
     elements.clistUsernameInput.value = state.settings.customClistUsername || '';
     elements.clistApiKeyInput.value = state.settings.customClistApiKey || '';
+    if (elements.badgeModeSelect) {
+      elements.badgeModeSelect.value = state.settings.badgeMode || 'contests';
+    }
     applyThemeAccent(state.settings.themeAccent || 'cyan');
     elements.settingsModal.classList.remove('hidden');
   });
@@ -849,8 +1224,13 @@ function setupEventListeners() {
     state.settings.hideLongContests = elements.hideLongContestsSwitch.checked;
     state.settings.customClistUsername = elements.clistUsernameInput.value.trim();
     state.settings.customClistApiKey = elements.clistApiKeyInput.value.trim();
+    if (elements.badgeModeSelect) {
+      state.settings.badgeMode = elements.badgeModeSelect.value;
+    }
 
     await chrome.storage.local.set({ settings: state.settings });
+    chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' }).catch(() => {});
+
     elements.settingsModal.classList.add('hidden');
     renderContests();
     fetchContests(true);
@@ -1202,11 +1582,66 @@ function updateTabCounts() {
   elements.countSaved.textContent = state.bookmarkedIds.length;
 }
 
+let liveArenaTickerInterval = null;
+
+function renderLiveArena() {
+  if (!elements.liveArenaBar) return;
+
+  const now = new Date();
+  const liveContest = state.contests.find((c) => {
+    if (state.selectedPlatforms.length > 0 && !state.selectedPlatforms.includes(c.resource)) return false;
+    const start = new Date(c.start.endsWith('Z') ? c.start : c.start + '.000Z');
+    const end = new Date(c.end.endsWith('Z') ? c.end : c.end + '.000Z');
+    return start <= now && end >= now;
+  });
+
+  if (!liveContest) {
+    elements.liveArenaBar.classList.add('hidden');
+    if (liveArenaTickerInterval) {
+      clearInterval(liveArenaTickerInterval);
+      liveArenaTickerInterval = null;
+    }
+    return;
+  }
+
+  const conf = PLATFORMS_CONFIG[liveContest.resource] || { name: liveContest.resource, icon: 'logo/icon16.png' };
+  elements.liveArenaIcon.src = conf.icon;
+  elements.liveArenaPlatform.textContent = conf.name;
+  elements.liveArenaName.textContent = liveContest.event;
+  elements.liveArenaBtn.href = liveContest.href || '#';
+
+  const end = new Date(liveContest.end.endsWith('Z') ? liveContest.end : liveContest.end + '.000Z');
+
+  function updateTicker() {
+    const diffMs = end.getTime() - Date.now();
+    if (diffMs <= 0) {
+      elements.liveArenaTimer.textContent = 'Round ending now...';
+      if (liveArenaTickerInterval) {
+        clearInterval(liveArenaTickerInterval);
+        liveArenaTickerInterval = null;
+      }
+      return;
+    }
+    const sec = Math.floor(diffMs / 1000);
+    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    elements.liveArenaTimer.textContent = `${h}:${m}:${s} remaining`;
+  }
+
+  updateTicker();
+  if (liveArenaTickerInterval) clearInterval(liveArenaTickerInterval);
+  liveArenaTickerInterval = setInterval(updateTicker, 1000);
+
+  elements.liveArenaBar.classList.remove('hidden');
+}
+
 /**
  * Main Render Pipeline
  */
 function renderContests() {
   updateTabCounts();
+  renderLiveArena();
   const filtered = getFilteredContests();
   elements.contestCountDisplay.textContent = `${filtered.length} contest${filtered.length === 1 ? '' : 's'}`;
 
@@ -1262,6 +1697,7 @@ function createContestCardHtml(contest, index) {
   const end = new Date(contest.end.endsWith('Z') ? contest.end : contest.end + '.000Z');
 
   const isLive = start <= now && end >= now;
+  const isEnded = end < now;
   const isBookmarked = state.bookmarkedIds.includes(contest.id);
   const hasReminder = Boolean(state.reminders && state.reminders[contest.id]);
   const isSelected = index === state.selectedCardIndex;
@@ -1270,6 +1706,14 @@ function createContestCardHtml(contest, index) {
   if (isLive) {
     const timeLeft = formatDuration((end.getTime() - now.getTime()) / 1000);
     statusBadgeHtml = `<span class="status-pill pill-live"><span class="live-dot-pulse"></span> LIVE • Ends in ${timeLeft}</span>`;
+  } else if (isEnded) {
+    statusBadgeHtml = `
+      <span class="status-pill" style="background: rgba(148,163,184,0.12); color: #94a3b8; border: 1px solid rgba(148,163,184,0.25);">Ended</span>
+      <a href="${escapeHtml(contest.href)}" target="_blank" rel="noopener" class="card-upsolve-link" title="Open problem archive to upsolve">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        <span>Upsolve</span>
+      </a>
+    `;
   } else {
     const diffSec = (start.getTime() - now.getTime()) / 1000;
     if (diffSec < 86400) {

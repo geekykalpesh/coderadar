@@ -54,6 +54,15 @@
               <path d="M6 20v-6"></path>
             </svg>
           </button>
+          <button id="shareCardBtn" class="btn-user-action icon-only" title="Export & Share Coder Card">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -147,6 +156,41 @@
       <button class="dur-pill" data-dur="short">&lt; 2h (Speed)</button>
       <button class="dur-pill" data-dur="medium">2h - 3h (Standard)</button>
       <button class="dur-pill" data-dur="long">&gt; 3h</button>
+    </div>
+
+    <!-- Timezone Sync Micro-Indicator -->
+    <div class="timezone-bar">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span id="timezoneText">Times synchronized to local time</span>
+    </div>
+
+    <!-- Live Arena Bar (Highlights Active Running Contest with Live Countdown) -->
+    <div id="liveArenaBar" class="live-arena-bar hidden">
+      <div class="live-arena-top">
+        <div class="live-badge-glow">
+          <span class="live-radar-dot"></span>
+          <span>LIVE ARENA</span>
+        </div>
+        <span id="liveArenaTimer" class="live-arena-timer">00:00:00 remaining</span>
+      </div>
+      <div class="live-arena-row">
+        <div class="live-arena-details">
+          <img id="liveArenaIcon" class="live-arena-plat-icon" src="images/codeforces.svg" alt="Platform" />
+          <div class="live-arena-text">
+            <span id="liveArenaPlatform" class="live-arena-plat-name">Codeforces</span>
+            <span id="liveArenaName" class="live-arena-contest-title">Active Contest</span>
+          </div>
+        </div>
+        <a id="liveArenaBtn" class="live-arena-enter-btn" href="#" target="_blank" rel="noopener">
+          <span>Enter Round</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M7 17l9.2-9.2M17 17V7H7"/>
+          </svg>
+        </a>
+      </div>
     </div>
 
     <!-- Segmented Navigation Tabs -->
@@ -281,6 +325,20 @@
             </select>
           </div>
 
+          <!-- Extension Toolbar Badge Mode -->
+          <div class="setting-row">
+            <div class="setting-meta">
+              <span class="setting-title">Toolbar Icon Badge</span>
+              <span class="setting-desc">Configure what appears over your extension icon</span>
+            </div>
+            <select id="badgeModeSelect" class="form-select">
+              <option value="contests" selected>Contests Today & Live</option>
+              <option value="rating">My Active Rating (CF / LC)</option>
+              <option value="live_only">Live Contests Only</option>
+              <option value="none">Off (No badge)</option>
+            </select>
+          </div>
+
           <!-- Alert Timing -->
           <div class="setting-row">
             <div class="setting-meta">
@@ -338,6 +396,53 @@
 
         <div class="dialog-footer">
           <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coder Card Modal (Shareable Identity Card) -->
+    <div id="shareCardModal" class="dialog-backdrop hidden">
+      <div class="dialog-panel card-modal-panel">
+        <div class="dialog-header">
+          <div class="dialog-title-group">
+            <h2 class="dialog-title">Coder Identity Card</h2>
+            <span class="dialog-subtitle">Shareable developer stats for social & GitHub</span>
+          </div>
+          <button id="closeShareCardBtn" class="dialog-close" aria-label="Close dialog">&times;</button>
+        </div>
+
+        <div class="dialog-body card-modal-body">
+          <!-- Live Visual Card Preview -->
+          <div id="cardVisualPreview" class="coder-card-render">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="card-modal-actions">
+            <button id="btnDownloadCardPng" class="btn-card-action primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download PNG Card</span>
+            </button>
+            <button id="btnCopyBadgeMd" class="btn-card-action secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy GitHub Badges</span>
+            </button>
+            <button id="btnCopyStatsText" class="btn-card-action secondary" title="Copy text summary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              </svg>
+              <span>Copy Text</span>
+            </button>
+          </div>
+          <div id="cardActionNotice" class="card-action-notice hidden">Copied to clipboard!</div>
         </div>
       </div>
     </div>
