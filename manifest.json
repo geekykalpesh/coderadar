@@ -30,6 +30,7 @@
   ],
   "host_permissions": [
     "https://clist.by/*",
-    "https://codeforces.com/*"
+    "https://codeforces.com/*",
+    "https://www.codechef.com/*"
   ]
 }

@@ -1,6 +1,6 @@
 /**
  * CodeRadar - High-End Professional Design System
- * Clean, modern, highly legible dark interface with keyboard navigation and personalization.
+ * Clean, modern, highly legible dark interface with Codeforces & CodeChef tracking.
  */
 
 :root {
@@ -214,6 +214,25 @@ body {
   font-weight: 600;
 }
 
+.chip-platform-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chip-platform-tag.cf {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.chip-platform-tag.cc {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+}
+
 .user-tab-dot {
   width: 7px;
   height: 7px;
@@ -308,7 +327,27 @@ body {
 .user-row-primary {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+}
+
+.user-platform-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+.user-platform-pill.cf {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.user-platform-pill.cc {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
 .user-handle {
@@ -342,9 +381,20 @@ body {
   color: var(--text-faint);
 }
 
+.user-real-name-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-real-name {
+  color: var(--text-muted);
+}
+
 .user-card-actions {
   display: flex;
   align-items: center;
+  gap: 2px;
 }
 
 .btn-ghost-icon {
@@ -354,10 +404,19 @@ body {
   cursor: pointer;
   padding: 5px;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   transition: all 0.15s ease;
 }
 
 .btn-ghost-icon:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#removeUserBtn:hover {
   color: var(--accent-red);
   background: rgba(239, 68, 68, 0.1);
 }
@@ -404,17 +463,54 @@ body {
 /* Inline Handle Form */
 .handle-form {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
-  padding: 4px 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 10px;
 }
 
 .handle-form.hidden { display: none; }
 
-.handle-form input {
+.form-platform-selector {
+  display: flex;
+  gap: 6px;
+}
+
+.platform-choice-btn {
+  flex: 1;
+  background: #11141c;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.platform-choice-btn:hover {
+  color: var(--text-primary);
+}
+
+.platform-choice-btn.active {
+  background: #1e2638;
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.handle-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.handle-input-row input {
   flex: 1;
   background: var(--bg-input);
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   padding: 7px 10px;
@@ -422,14 +518,14 @@ body {
   outline: none;
 }
 
-.handle-form input:focus {
+.handle-input-row input:focus {
   border-color: var(--accent-color);
 }
 
 .btn-save-handle {
   background: var(--accent-color);
   color: #0c0e12;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   border: none;
   padding: 7px 14px;
@@ -1000,6 +1096,9 @@ body {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .standings-tier {

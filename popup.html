@@ -32,15 +32,15 @@
       </div>
     </header>
 
-    <!-- Multi-User Profile HUD Section -->
+    <!-- Multi-User / Multi-Platform HUD Section -->
     <div id="profileSection" class="profile-section">
-      <!-- Multi-User Switcher Strip -->
+      <!-- User Switcher Strip -->
       <div id="userSwitcherStrip" class="user-switcher-strip">
         <div id="userTabsContainer" class="user-tabs-container">
           <!-- Rendered dynamically -->
         </div>
         <div class="user-strip-actions">
-          <button id="addUserBtn" class="btn-user-action" title="Add another user or friend">
+          <button id="addUserBtn" class="btn-user-action" title="Add user (Codeforces or CodeChef)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -60,10 +60,11 @@
       <!-- Active User Card -->
       <div id="profileHud" class="profile-card">
         <div id="userAvatarWrap" class="user-avatar-wrap">
-          <!-- Monogram or crisp Image -->
+          <!-- Monogram or Image -->
         </div>
         <div class="user-meta">
           <div class="user-row-primary">
+            <span id="userPlatformBadge" class="user-platform-pill">CF</span>
             <span id="userHandle" class="user-handle">handle</span>
             <span id="userRankBadge" class="user-rank-badge">Rank</span>
           </div>
@@ -71,9 +72,20 @@
             <span>Rating: <strong id="userRating" class="user-rating-val">0</strong></span>
             <span class="bullet">•</span>
             <span>Max: <strong id="userMaxRating">0</strong></span>
+            <span id="userRealNameWrap" class="user-real-name-wrap">
+              <span class="bullet">•</span>
+              <span id="userRealName" class="user-real-name">Name</span>
+            </span>
           </div>
         </div>
         <div class="user-card-actions">
+          <a id="userProfileLink" href="#" target="_blank" rel="noopener" class="btn-ghost-icon" title="View official profile">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </a>
           <button id="removeUserBtn" class="btn-ghost-icon" title="Remove this user">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
@@ -85,9 +97,15 @@
 
       <!-- Add User Inline Form (Collapsible) -->
       <div id="handleForm" class="handle-form hidden">
-        <input type="text" id="handleInput" placeholder="Enter Codeforces handle (e.g. tourist, geekykalpesh)" autocomplete="off" />
-        <button id="saveHandleBtn" class="btn-save-handle">Add User</button>
-        <button id="cancelHandleBtn" class="btn-cancel-handle">&times;</button>
+        <div class="form-platform-selector">
+          <button type="button" class="platform-choice-btn active" data-platform="codeforces">Codeforces</button>
+          <button type="button" class="platform-choice-btn" data-platform="codechef">CodeChef</button>
+        </div>
+        <div class="handle-input-row">
+          <input type="text" id="handleInput" placeholder="Enter username (e.g. geekykalpesh)" autocomplete="off" />
+          <button id="saveHandleBtn" class="btn-save-handle">Add User</button>
+          <button id="cancelHandleBtn" class="btn-cancel-handle">&times;</button>
+        </div>
       </div>
 
       <!-- Empty State: When no users added yet -->
@@ -97,7 +115,7 @@
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
-          <span>Track your Codeforces ratings & friends</span>
+          <span>Track your Codeforces & CodeChef ratings</span>
           <span class="plus-tag">+</span>
         </button>
       </div>
