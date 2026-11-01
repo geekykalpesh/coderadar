@@ -1,7 +1,7 @@
 /**
  * CodeRadar - Multi-Platform Competitive Programming Engine
- * Tracks Codeforces and CodeChef ratings, multi-user lists, friends leaderboard,
- * keyboard navigation, and universal calendar sync.
+ * Unified tracking for Codeforces, CodeChef, and LeetCode.
+ * Includes friends standings, keyboard navigation, and universal calendar sync.
  */
 
 // Supported Platforms Configuration
@@ -42,19 +42,26 @@ const CC_STAR_COLORS = {
   'unrated': '#9ca3af'
 };
 
+const LC_BADGE_COLORS = {
+  'guardian': '#ef4444',
+  'knight': '#f59e0b',
+  'contestant': '#38bdf8',
+  'unrated': '#9ca3af'
+};
+
 // Application State
 const state = {
   contests: [],
   activeTab: 'all',
-  activeDurFilter: 'all', // 'all', 'short', 'medium', 'long'
+  activeDurFilter: 'all',
   searchQuery: '',
   selectedPlatforms: Object.keys(PLATFORMS_CONFIG),
   bookmarkedIds: [],
-  reminders: {}, // contestId -> details
+  reminders: {},
   selectedCardIndex: -1,
   activeCalendarContest: null,
-  trackedUsers: [], // [{ platform: 'codeforces'|'codechef', handle, rating, maxRating, rank, realName, titlePhoto }]
-  activeUserKey: '', // `${platform}:${handle}`
+  trackedUsers: [], // [{ platform, handle, rating, maxRating, rank, realName, titlePhoto, totalSolved, globalRanking }]
+  activeUserKey: '',
   selectedPlatformChoice: 'codeforces',
   settings: {
     reminderMinutes: 15,
@@ -113,7 +120,10 @@ const elements = {
   userHandle: document.getElementById('userHandle'),
   userRankBadge: document.getElementById('userRankBadge'),
   userRating: document.getElementById('userRating'),
+  userMaxRatingWrap: document.getElementById('userMaxRatingWrap'),
   userMaxRating: document.getElementById('userMaxRating'),
+  userExtraStatsWrap: document.getElementById('userExtraStatsWrap'),
+  userExtraStats: document.getElementById('userExtraStats'),
   userRealNameWrap: document.getElementById('userRealNameWrap'),
   userRealName: document.getElementById('userRealName'),
   userProfileLink: document.getElementById('userProfileLink'),
@@ -168,7 +178,7 @@ function applyThemeAccent(accent) {
 }
 
 /**
- * Load State
+ * Load Persistent State from chrome.storage.local
  */
 async function loadStoredData() {
   try {
@@ -197,11 +207,6 @@ async function loadStoredData() {
     if (Array.isArray(data.trackedUsers) && data.trackedUsers.length > 0) {
       state.trackedUsers = data.trackedUsers;
       state.activeUserKey = data.activeUserKey || getUserKey(data.trackedUsers[0]);
-    } else if (state.settings.cfHandle) {
-      const u = { platform: 'codeforces', handle: state.settings.cfHandle, rating: 0, maxRating: 0, rank: 'unrated' };
-      state.trackedUsers = [u];
-      state.activeUserKey = getUserKey(u);
-      await chrome.storage.local.set({ trackedUsers: state.trackedUsers, activeUserKey: state.activeUserKey });
     }
 
     renderMultiUserSection();
@@ -219,14 +224,26 @@ function getUserKey(user) {
   return `${user.platform || 'codeforces'}:${user.handle.toLowerCase()}`;
 }
 
+function getRankColor(user) {
+  const rank = (user.rank || 'unrated').toLowerCase();
+  if (user.platform === 'codechef') {
+    return CC_STAR_COLORS[rank] || '#9ca3af';
+  }
+  if (user.platform === 'leetcode') {
+    return LC_BADGE_COLORS[rank] || '#9ca3af';
+  }
+  return CF_RANK_COLORS[rank] || '#9ca3af';
+}
+
 /**
- * Multi-Platform User Refresh (Codeforces & CodeChef)
+ * Multi-Platform User Refresh (Codeforces, CodeChef, LeetCode)
  */
 async function refreshAllTrackedUsers() {
   if (state.trackedUsers.length === 0) return;
 
   const cfUsers = state.trackedUsers.filter((u) => (u.platform || 'codeforces') === 'codeforces');
   const ccUsers = state.trackedUsers.filter((u) => u.platform === 'codechef');
+  const lcUsers = state.trackedUsers.filter((u) => u.platform === 'leetcode');
 
   // 1. Batch refresh Codeforces
   if (cfUsers.length > 0) {
@@ -267,12 +284,30 @@ async function refreshAllTrackedUsers() {
     }
   }
 
+  // 3. Refresh LeetCode users
+  for (const lcUser of lcUsers) {
+    try {
+      const info = await fetchLeetCodeProfile(lcUser.handle);
+      if (info) {
+        lcUser.rating = info.rating;
+        lcUser.maxRating = info.rating;
+        lcUser.rank = info.rank;
+        lcUser.totalSolved = info.totalSolved;
+        lcUser.globalRanking = info.globalRanking;
+        lcUser.realName = info.realName;
+        lcUser.titlePhoto = info.titlePhoto;
+      }
+    } catch (err) {
+      console.warn(`[CodeRadar] LeetCode refresh error for ${lcUser.handle}:`, err);
+    }
+  }
+
   await chrome.storage.local.set({ trackedUsers: state.trackedUsers, activeUserKey: state.activeUserKey });
   renderMultiUserSection();
 }
 
 /**
- * Scrape / Parse CodeChef User Profile
+ * Fetch CodeChef Profile
  */
 async function fetchCodeChefProfile(handle) {
   try {
@@ -294,7 +329,75 @@ async function fetchCodeChefProfile(handle) {
 
     return { rating, maxRating, rank, realName };
   } catch (e) {
-    console.warn(`[CodeRadar] CodeChef fetch error for ${handle}:`, e);
+    console.warn(`[CodeRadar] CodeChef error for ${handle}:`, e);
+    return null;
+  }
+}
+
+/**
+ * Fetch LeetCode Profile via GraphQL
+ */
+async function fetchLeetCodeProfile(username) {
+  try {
+    const query = JSON.stringify({
+      query: `query getUser($username: String!) {
+        userContestRanking(username: $username) {
+          rating
+          globalRanking
+          totalParticipants
+          topPercentage
+          badge { name }
+        }
+        matchedUser(username: $username) {
+          username
+          profile { realName userAvatar }
+          submitStatsGlobal { acSubmissionNum { difficulty count } }
+        }
+      }`,
+      variables: { username }
+    });
+
+    const res = await fetch('https://leetcode.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: query
+    });
+
+    const json = await res.json();
+    const data = json.data;
+    if (!data || !data.matchedUser) return null;
+
+    const ranking = data.userContestRanking;
+    const matched = data.matchedUser;
+
+    const rating = ranking && ranking.rating ? Math.round(ranking.rating) : 0;
+    let badge = ranking && ranking.badge && ranking.badge.name ? ranking.badge.name : '';
+    if (!badge) {
+      if (rating >= 2150) badge = 'Guardian';
+      else if (rating >= 1850) badge = 'Knight';
+      else if (rating > 0) badge = 'Contestant';
+      else badge = 'Unrated';
+    }
+
+    const totalSolved =
+      matched.submitStatsGlobal && Array.isArray(matched.submitStatsGlobal.acSubmissionNum)
+        ? matched.submitStatsGlobal.acSubmissionNum.find((d) => d.difficulty === 'All')?.count || 0
+        : 0;
+
+    return {
+      handle: matched.username,
+      rating: rating,
+      maxRating: rating,
+      rank: badge,
+      globalRanking: ranking ? ranking.globalRanking : null,
+      totalSolved: totalSolved,
+      realName: matched.profile ? matched.profile.realName : '',
+      titlePhoto: matched.profile ? matched.profile.userAvatar : ''
+    };
+  } catch (e) {
+    console.warn(`[CodeRadar] LeetCode error for ${username}:`, e);
     return null;
   }
 }
@@ -322,23 +425,25 @@ function renderMultiUserSection() {
     state.activeUserKey = getUserKey(activeUser);
   }
 
-  const isCC = activeUser.platform === 'codechef';
+  const platform = activeUser.platform || 'codeforces';
+  const isCC = platform === 'codechef';
+  const isLC = platform === 'leetcode';
 
   // 1. Render User Switcher Chips
   elements.userTabsContainer.innerHTML = '';
   state.trackedUsers.forEach((u) => {
     const uKey = getUserKey(u);
     const isActive = uKey === state.activeUserKey;
-    const userIsCC = u.platform === 'codechef';
-    const rankColor = userIsCC
-      ? CC_STAR_COLORS[(u.rank || 'unrated').toLowerCase()] || '#9ca3af'
-      : CF_RANK_COLORS[(u.rank || 'unrated').toLowerCase()] || '#9ca3af';
+    const uPlat = u.platform || 'codeforces';
+    const tag = uPlat === 'codechef' ? 'CC' : uPlat === 'leetcode' ? 'LC' : 'CF';
+    const tagClass = uPlat === 'codechef' ? 'cc' : uPlat === 'leetcode' ? 'lc' : 'cf';
+    const rankColor = getRankColor(u);
 
     const chip = document.createElement('button');
     chip.className = `user-tab-chip ${isActive ? 'active' : ''}`;
     chip.dataset.key = uKey;
     chip.innerHTML = `
-      <span class="chip-platform-tag ${userIsCC ? 'cc' : 'cf'}">${userIsCC ? 'CC' : 'CF'}</span>
+      <span class="chip-platform-tag ${tagClass}">${tag}</span>
       <span class="user-tab-dot" style="background: ${rankColor};"></span>
       <span>${escapeHtml(u.handle)}</span>
     `;
@@ -354,12 +459,27 @@ function renderMultiUserSection() {
 
   // 2. Render Active User Card
   elements.userHandle.textContent = activeUser.handle;
-  elements.userPlatformBadge.textContent = isCC ? 'CodeChef' : 'Codeforces';
-  elements.userPlatformBadge.className = `user-platform-pill ${isCC ? 'cc' : 'cf'}`;
+  elements.userPlatformBadge.textContent = isCC ? 'CodeChef' : isLC ? 'LeetCode' : 'Codeforces';
+  elements.userPlatformBadge.className = `user-platform-pill ${isCC ? 'cc' : isLC ? 'lc' : 'cf'}`;
   elements.userRankBadge.textContent = activeUser.rank || 'unrated';
   elements.userRating.textContent = activeUser.rating || 0;
-  elements.userMaxRating.textContent = activeUser.maxRating || 0;
 
+  // Max rating vs Solved count
+  if (isLC) {
+    elements.userMaxRatingWrap.style.display = 'none';
+    if (activeUser.totalSolved !== undefined) {
+      elements.userExtraStatsWrap.style.display = 'inline-flex';
+      elements.userExtraStats.textContent = `Solved: ${activeUser.totalSolved}`;
+    } else {
+      elements.userExtraStatsWrap.style.display = 'none';
+    }
+  } else {
+    elements.userMaxRatingWrap.style.display = 'inline-flex';
+    elements.userMaxRating.textContent = activeUser.maxRating || 0;
+    elements.userExtraStatsWrap.style.display = 'none';
+  }
+
+  // Real Name
   if (activeUser.realName) {
     elements.userRealNameWrap.style.display = 'inline-flex';
     elements.userRealName.textContent = activeUser.realName;
@@ -367,14 +487,14 @@ function renderMultiUserSection() {
     elements.userRealNameWrap.style.display = 'none';
   }
 
+  // Profile link
   elements.userProfileLink.href = isCC
     ? `https://www.codechef.com/users/${encodeURIComponent(activeUser.handle)}`
+    : isLC
+    ? `https://leetcode.com/u/${encodeURIComponent(activeUser.handle)}`
     : `https://codeforces.com/profile/${encodeURIComponent(activeUser.handle)}`;
 
-  const color = isCC
-    ? CC_STAR_COLORS[(activeUser.rank || 'unrated').toLowerCase()] || '#9ca3af'
-    : CF_RANK_COLORS[(activeUser.rank || 'unrated').toLowerCase()] || '#9ca3af';
-
+  const color = getRankColor(activeUser);
   elements.userRankBadge.style.backgroundColor = `${color}22`;
   elements.userRankBadge.style.color = color;
   elements.userRankBadge.style.border = `1px solid ${color}44`;
@@ -428,7 +548,7 @@ function renderBulletproofAvatar(user, rankColor) {
 }
 
 /**
- * Standings Modal (Ranks all tracked users)
+ * Standings Modal (Ranks all tracked users across CF, CC, LC)
  */
 function renderStandingsModal() {
   const sorted = [...state.trackedUsers].sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -440,10 +560,10 @@ function renderStandingsModal() {
   }
 
   sorted.forEach((u, idx) => {
-    const isCC = u.platform === 'codechef';
-    const color = isCC
-      ? CC_STAR_COLORS[(u.rank || 'unrated').toLowerCase()] || '#9ca3af'
-      : CF_RANK_COLORS[(u.rank || 'unrated').toLowerCase()] || '#9ca3af';
+    const uPlat = u.platform || 'codeforces';
+    const tag = uPlat === 'codechef' ? 'CC' : uPlat === 'leetcode' ? 'LC' : 'CF';
+    const tagClass = uPlat === 'codechef' ? 'cc' : uPlat === 'leetcode' ? 'lc' : 'cf';
+    const color = getRankColor(u);
     const initial = (u.handle || '?').substring(0, 2).toUpperCase();
 
     const row = document.createElement('div');
@@ -458,13 +578,13 @@ function renderStandingsModal() {
       <div class="standings-info">
         <span class="standings-handle">
           <span>${escapeHtml(u.handle)}</span>
-          <span class="chip-platform-tag ${isCC ? 'cc' : 'cf'}">${isCC ? 'CC' : 'CF'}</span>
+          <span class="chip-platform-tag ${tagClass}">${tag}</span>
         </span>
         <span class="standings-tier" style="color: ${color};">${escapeHtml(u.rank || 'unrated')}</span>
       </div>
       <div class="standings-rating-box">
         <span class="standings-rating" style="color: ${color};">${u.rating || 0}</span>
-        <span class="standings-max">Max ${u.maxRating || 0}</span>
+        <span class="standings-max">${u.platform === 'leetcode' ? (u.totalSolved ? `${u.totalSolved} solved` : '') : `Max ${u.maxRating || 0}`}</span>
       </div>
     `;
 
@@ -541,10 +661,14 @@ function setupEventListeners() {
       elements.platformChoiceBtns.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       state.selectedPlatformChoice = btn.dataset.platform;
-      elements.handleInput.placeholder =
-        state.selectedPlatformChoice === 'codechef'
-          ? 'Enter CodeChef handle (e.g. geekykalpesh)'
-          : 'Enter Codeforces handle (e.g. tourist)';
+
+      if (state.selectedPlatformChoice === 'codechef') {
+        elements.handleInput.placeholder = 'Enter CodeChef handle (e.g. geekykalpesh)';
+      } else if (state.selectedPlatformChoice === 'leetcode') {
+        elements.handleInput.placeholder = 'Enter LeetCode username (e.g. geekykalpesh, neal_wu)';
+      } else {
+        elements.handleInput.placeholder = 'Enter Codeforces handle (e.g. tourist)';
+      }
       elements.handleInput.focus();
     });
   });
@@ -585,6 +709,37 @@ function setupEventListeners() {
           renderMultiUserSection();
         } else {
           alert(`Could not verify CodeChef handle "${handle}". Check the spelling.`);
+        }
+      } else if (platform === 'leetcode') {
+        const info = await fetchLeetCodeProfile(handle);
+        if (info) {
+          const newUser = {
+            platform: 'leetcode',
+            handle: info.handle,
+            rating: info.rating,
+            maxRating: info.rating,
+            rank: info.rank,
+            totalSolved: info.totalSolved,
+            globalRanking: info.globalRanking,
+            realName: info.realName,
+            titlePhoto: info.titlePhoto
+          };
+
+          const key = getUserKey(newUser);
+          const existingIdx = state.trackedUsers.findIndex((u) => getUserKey(u) === key);
+          if (existingIdx >= 0) state.trackedUsers[existingIdx] = newUser;
+          else state.trackedUsers.push(newUser);
+
+          state.activeUserKey = key;
+          await chrome.storage.local.set({
+            trackedUsers: state.trackedUsers,
+            activeUserKey: state.activeUserKey
+          });
+
+          elements.handleForm.classList.add('hidden');
+          renderMultiUserSection();
+        } else {
+          alert(`Could not find LeetCode user "${handle}".`);
         }
       } else {
         // Codeforces
@@ -936,7 +1091,7 @@ async function fetchContests(showSkeleton = false) {
 }
 
 /**
- * Direct official Codeforces API fallback
+ * Direct Codeforces API Fallback
  */
 async function tryCodeforcesFallback() {
   try {

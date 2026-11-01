@@ -32,7 +32,7 @@
       </div>
     </header>
 
-    <!-- Multi-User / Multi-Platform HUD Section -->
+    <!-- Multi-User / Multi-Platform HUD Section (CF + CC + LC) -->
     <div id="profileSection" class="profile-section">
       <!-- User Switcher Strip -->
       <div id="userSwitcherStrip" class="user-switcher-strip">
@@ -40,7 +40,7 @@
           <!-- Rendered dynamically -->
         </div>
         <div class="user-strip-actions">
-          <button id="addUserBtn" class="btn-user-action" title="Add user (Codeforces or CodeChef)">
+          <button id="addUserBtn" class="btn-user-action" title="Add user (Codeforces, CodeChef, or LeetCode)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -70,8 +70,14 @@
           </div>
           <div class="user-row-secondary">
             <span>Rating: <strong id="userRating" class="user-rating-val">0</strong></span>
-            <span class="bullet">•</span>
-            <span>Max: <strong id="userMaxRating">0</strong></span>
+            <span id="userMaxRatingWrap">
+              <span class="bullet">•</span>
+              <span>Max: <strong id="userMaxRating">0</strong></span>
+            </span>
+            <span id="userExtraStatsWrap" class="user-extra-stats-wrap">
+              <span class="bullet">•</span>
+              <span id="userExtraStats" class="user-extra-stats">Stats</span>
+            </span>
             <span id="userRealNameWrap" class="user-real-name-wrap">
               <span class="bullet">•</span>
               <span id="userRealName" class="user-real-name">Name</span>
@@ -100,6 +106,7 @@
         <div class="form-platform-selector">
           <button type="button" class="platform-choice-btn active" data-platform="codeforces">Codeforces</button>
           <button type="button" class="platform-choice-btn" data-platform="codechef">CodeChef</button>
+          <button type="button" class="platform-choice-btn" data-platform="leetcode">LeetCode</button>
         </div>
         <div class="handle-input-row">
           <input type="text" id="handleInput" placeholder="Enter username (e.g. geekykalpesh)" autocomplete="off" />
@@ -115,7 +122,7 @@
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
-          <span>Track your Codeforces & CodeChef ratings</span>
+          <span>Track Codeforces, CodeChef & LeetCode ratings</span>
           <span class="plus-tag">+</span>
         </button>
       </div>

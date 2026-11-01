@@ -233,6 +233,11 @@ body {
   background: rgba(251, 191, 36, 0.15);
 }
 
+.chip-platform-tag.lc {
+  color: #fb923c;
+  background: rgba(251, 146, 60, 0.15);
+}
+
 .user-tab-dot {
   width: 7px;
   height: 7px;
@@ -348,6 +353,22 @@ body {
   background: rgba(245, 158, 11, 0.18);
   color: #fbbf24;
   border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.user-platform-pill.lc {
+  background: rgba(251, 146, 60, 0.18);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.35);
+}
+
+.user-extra-stats-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-extra-stats {
+  color: var(--text-secondary);
 }
 
 .user-handle {
