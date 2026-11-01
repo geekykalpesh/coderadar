@@ -1023,8 +1023,9 @@ function setupEventListeners() {
     elements.handleInput.focus();
   };
 
-  elements.addUserBtn.addEventListener('click', openAddUserForm);
-  elements.addFirstHandleBtn.addEventListener('click', openAddUserForm);
+  if (elements.addUserBtn) {
+    elements.addUserBtn.addEventListener('click', openAddUserForm);
+  }
 
   elements.cancelHandleBtn.addEventListener('click', () => {
     elements.handleForm.classList.add('hidden');
