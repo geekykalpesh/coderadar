@@ -1,111 +1,51 @@
-# Chrome Web Store Listing - CodeRadar
+# ⚡ CodeRadar - Chrome Web Store Listing (Policy Compliant)
 
-Copy and paste the exact fields below directly into the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
+This version removes all keyword lists and complies 100% with Google's **Yellow Argon (Keyword Stuffing)** policy.
 
 ---
 
 ## 1. Store Metadata
 
 **Product Name:**  
-`CodeRadar - Coding Contests & CP Calendar`
+`CodeRadar - Coding Contests & Developer HUD`
 
 **Short Description (max 132 characters):**  
-`Never miss a coding contest! Live schedule & alerts for LeetCode, Codeforces, CodeChef, AtCoder. 1-click Google Calendar sync.`
+`Never miss a coding contest! Real-time schedule, desktop reminders, calendar sync, and profile rating tracker.`  
+*(Character count: 110 / 132)*
 
-**Category:**  
-`Developer Tools` (Secondary: `Productivity`)
+**Primary Category:**  
+`Developer Tools`
 
-**Language:**  
-`English`
+**Secondary Category:**  
+`Productivity`
 
 ---
 
 ## 2. Detailed Description (Paste into Description Field)
 
 ```markdown
-⚡ Never miss another competitive programming contest or DSA round again!
+Never miss another competitive coding contest or algorithm challenge.
 
-CodeRadar is a lightning-fast, privacy-first Chrome extension that aggregates live and upcoming contests from all major competitive programming platforms into a clean, modern developer radar.
+CodeRadar is a lightweight, privacy-first developer companion that unifies live contest schedules, desktop alerts, calendar synchronization, and profile rating tracking into a clean interface.
 
-Whether you are preparing for coding interviews, climbing the Codeforces rating ladder, or competing in weekend LeetCode contests, CodeRadar keeps your schedule synced and organized.
+Built for engineers and students preparing for technical interviews or participating in regular timed rounds, CodeRadar keeps your practice schedule organized without switching between multiple websites.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 SUPPORTED PLATFORMS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Codeforces (Rounds, Div. 1, Div. 2, Div. 3, Div. 4, Educational)
-✓ LeetCode (Weekly Contests & Biweekly Contests)
-✓ CodeChef (Starters, Cook-Off, Long Challenges)
-✓ AtCoder (Beginner ABC, Regular ARC, Grand AGC)
-✓ GeeksforGeeks (Weekly Contests & Job-A-Thons)
-✓ HackerEarth (Hiring Challenges & Circuit)
-✓ TopCoder (SRM rounds)
-✓ Coding Ninjas / Code360
+Key Features:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 KEY FEATURES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• 🔴 Real-Time Status & Countdowns: Instant visual badges for LIVE contests and dynamic countdown timers ("Starts in 2h 15m", "Ends in 45m").
-• 📅 1-Click Google Calendar Sync: Add any contest directly to your Google Calendar with pre-populated UTC start/end times and contest links.
-• 🔔 Desktop Alarm Reminders: Set native desktop alerts 15 minutes before any contest starts so you're always ready when the contest room opens.
-• 🔍 Instant Search & Division Filters: Filter contests in real-time by keyword (e.g., "Div. 2", "Biweekly", "Starters", "AtCoder").
-• ⭐ Star / Bookmark Watchlist: Pin your target contests into your personal "Starred" tab for quick access.
-• 🏷️ Platform Chips & Toggles: Customize your feed by toggling platforms on or off with live contest count counters.
-• ⏱️ Duration Filter: Automatically hide long multi-week hackathons to focus exclusively on standard 1-3 hour timed rounds.
-• ⚡ 0ms Instant Loading: Smart caching with background sync ensures your radar opens instantly without annoying loading spinners.
-• 🛡️ 100% Privacy-First: No account required, no tracking scripts, no ads. All your settings and bookmarks stay locally on your device.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔒 PRIVACY & PERMISSIONS JUSTIFICATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CodeRadar respects your privacy. It requires only standard permissions necessary for its core features:
-• Storage: Saves your selected platform filters and contest bookmarks locally.
-• Alarms: Schedules native background alarms for your chosen contest reminders.
-• Notifications: Displays desktop alerts when an upcoming contest is about to start.
-• Host Permissions (clist.by, codeforces.com): Fetches publicly available contest schedule data.
-
-Crafted with ❤️ for competitive coders, students, and software engineers worldwide.
+• Real-Time Contest Schedule: View ongoing and upcoming coding rounds with live countdown timers and duration indicators.
+• Smart Desktop Reminders: Schedule alerts 15 minutes prior to contest start times so you never join late.
+• Calendar Synchronization: Export scheduled contests directly to Google Calendar, Outlook, or standard iCalendar (.ics) files.
+• Developer Rating HUD: Monitor your ratings, ranks, and contest milestones across your competitive profiles in a single drawer.
+• Multi-Handle Tracking: Add peer handles to follow friends and compare contest statistics.
+• Fast Search & Filters: Search contests by title or filter by round duration to find rounds that fit your availability.
+• Shareable Profile Cards: Create clean summary cards of your contest achievements to share on your portfolio or professional profiles.
+• Performance & Privacy: Runs entirely on your local device with no user tracking, no third-party analytics, and minimal resource usage.
 ```
 
 ---
 
-## 3. SEO Keywords & Search Tags
+## 3. Single Purpose Declaration (Privacy Practices Tab)
 
-Use these keywords when tagging or optimizing external links and social posts:
-- `competitive programming`
-- `coding contests`
-- `leetcode contest`
-- `codeforces calendar`
-- `codechef starters`
-- `atcoder contest`
-- `dsa tracker`
-- `contest reminder`
-- `coding interview prep`
-- `algorithm challenges`
-- `clist calendar`
-- `hackathon tracker`
-
----
-
-## 4. Single Purpose Declaration (For Review Form)
-
-When asked: *"What is the single purpose of your extension?"*  
-**Answer:**  
-`CodeRadar provides competitive programmers with real-time schedules, desktop reminders, and 1-click Google Calendar synchronization for upcoming coding contests across major platforms.`
-
----
-
-## 5. Permissions Justification (For Review Form)
-
-When Google asks to justify your requested permissions:
-
-- **`storage`**:  
-  *Justification:* "Used to save user preferences (selected platforms, reminder offset, bookmarked contests) locally on the user's browser."
-  
-- **`alarms`**:  
-  *Justification:* "Used to trigger local reminder timers in the background at the exact time before a contest starts."
-  
-- **`notifications`**:  
-  *Justification:* "Used to display a desktop notification alerting the user that a contest they opted into is starting in 15 minutes."
-
-- **Host Permissions (`https://clist.by/*`, `https://codeforces.com/*`)**:  
-  *Justification:* "Required to make HTTPS API calls to fetch public competitive programming contest schedules and fallback contest listings."
+```text
+CodeRadar provides programmers with real-time contest schedules, desktop reminders, calendar synchronization, and a developer rating tracker across competitive coding platforms.
+```
